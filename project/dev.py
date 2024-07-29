@@ -1,27 +1,47 @@
 import yaml
 import os
 import glob
+import helper
 
 # test out yaml
 CONFIG_DIR = os.path.dirname(__file__) + '/../config.yml'
 # CONFIG_DIR = '/../config.yml'
 config = yaml.safe_load(open(CONFIG_DIR))
+config = {1:1}
 
-print(config)
+print(helper.get_format(config))
+# print(config)
 
-prefix_path: str = os.path.dirname(__file__) + config['prefix_path'] 
-final_path: str = os.path.dirname(__file__) + config['final_path']
 
-print(prefix_path)
-print(final_path)
 
-print(os.listdir(prefix_path))
-print(os.listdir(final_path))
 
-# clear temp files from subfolders
-for temps in glob.glob(os.path.join(prefix_path, "**"), recursive=True):
-    if temps.endswith((".csv", ".gz")):
-        os.remove(temps)
+
+
+
+
+
+# print(isinstance(config, dict))
+
+# prefix_path: str = os.path.dirname(__file__) + config['prefix_path'] 
+# final_path: str = os.path.dirname(__file__) + config['final_path']
+# output_format: str = (if config.get("output_format") in ("csv","json"): config.get("output_format"))  or "csv" 
+
+# print(output_format)
+# print(prefix_path)
+# print(final_path)
+
+# Format.CSV
+# Format.JSONL
+# Format.Parquet
+# Format.TSV
+
+# print(os.listdir(prefix_path))
+# print(os.listdir(final_path))
+
+# # clear temp files from subfolders
+# for temps in glob.glob(os.path.join(prefix_path, "**"), recursive=True):
+#     if temps.endswith((".csv", ".gz")):
+#         os.remove(temps)
 
 # check local machine doesn't have environment variables
 # base_url: str = os.environ["DAP_API_URL"]

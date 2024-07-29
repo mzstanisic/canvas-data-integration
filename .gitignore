@@ -3,3 +3,6 @@ resources/
 *.env
 *.csv
 *.json
+*.gz
+*.log
+*.pyc

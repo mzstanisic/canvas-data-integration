@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 from urllib.parse import ParseResult, urlparse
 import pandas as pd
 
+import helper
 import aiofiles
 
 import yaml
@@ -32,10 +33,12 @@ client_secret: str = os.environ.get("DAP_CLIENT_SECRET")
 # client_secret: str = os.environ["DAP_CLIENT_SECRET"]
 credentials = Credentials.create(client_id=client_id, client_secret=client_secret)
 
-prefix_path: str = os.path.dirname(__file__) + config['prefix_path'] 
-final_path: str = os.path.dirname(__file__) + config['final_path']
+prefix_path: str = os.path.dirname(__file__) + config.get('prefix_path')
+final_path: str = os.path.dirname(__file__) + config.get('final_path')
+output_format = helper.get_format(config)
 # prefix_path = "V:/BI Project/Temp Files"
 # final_path = "V:/BI Project/New Files for Devin"
+
 
 # timestamp returned by last snapshot or incremental query
 last_seen = datetime.now(timezone.utc) - timedelta(days=1)
@@ -215,22 +218,25 @@ async def update_course_sections():
         )
 
 
-async def update_enrollment_terms():
+async def update_enrollment_terms(output_format=Format.CSV):
     async with DAPClient() as session:
         query = IncrementalQuery(
-            format=Format.CSV,
-            filter=None,
+            # format=Format.CSV,
+            format=output_format,
+            # filter=None,
+            mode=None,
             since=last_seen,
             until=None,
         )
         result = await session.get_table_data("canvas", "enrollment_terms", query)
         resources = await session.get_resources(result.objects)
-        for resource in resources:
+        for resource in resources.values():
             components: ParseResult = urlparse(str(resource.url))
             file_path = os.path.join(
                 prefix_path, "Enrollment Terms", os.path.basename(components.path)
             )
-            async with session.stream_resource(resource) as stream:
+            # async with session.stream_resource(resource) as stream:
+            async for stream in session.stream_resource(resource):
                 async with aiofiles.open(file_path, "wb") as file:
                     # save gzip data to file without decompressing
                     async for chunk in stream.iter_chunked(64 * 1024):
@@ -245,14 +251,14 @@ async def update_enrollment_terms():
         df2 = pd.read_csv(os.path.join(prefix_path, "temp-enrollment_terms.csv"))
         df2.drop(
             [
-                "value.integration_id",
+                # "value.integration_id",
                 "value.created_at",
                 "value.updated_at",
                 "value.workflow_state",
                 "value.sis_batch_id",
                 "value.start_at",
                 "value.end_at",
-                "value.sis_source_id",
+                # "value.sis_source_id",
                 "value.grading_period_group_id",
             ],
             axis=1,
@@ -507,13 +513,13 @@ async def update_users():
 
 
 async def update_all():
-    await update_courses()
-    await update_course_sections()
-    await update_enrollment_terms()
-    await update_enrollments()
-    await update_pseudonyms()
-    await update_scores()
-    await update_users()
+    # await update_courses()
+    # await update_course_sections()
+    await update_enrollment_terms(output_format)
+    # await update_enrollments()
+    # await update_pseudonyms()
+    # await update_scores()
+    # await update_users()
 
 
 async def main():
