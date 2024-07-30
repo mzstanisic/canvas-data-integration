@@ -16,7 +16,7 @@ from dotenv import load_dotenv, find_dotenv
 
 from dap.api import DAPClient
 from dap.dap_types import Credentials
-from dap.dap_types import Format, IncrementalQuery
+from dap.dap_types import Format, SnapshotQuery, IncrementalQuery
 
 
 CONFIG_DIR = os.path.dirname(__file__) + '/../config.yml'
@@ -33,9 +33,10 @@ client_secret: str = os.environ.get("DAP_CLIENT_SECRET")
 # client_secret: str = os.environ["DAP_CLIENT_SECRET"]
 credentials = Credentials.create(client_id=client_id, client_secret=client_secret)
 
-prefix_path: str = os.path.dirname(__file__) + config.get('prefix_path')
-final_path: str = os.path.dirname(__file__) + config.get('final_path')
-output_format = helper.get_format(config)
+prefix_path: str = os.path.dirname(__file__) + config.get('prefix_path') # TODO: rename all config variables
+final_path: str = os.path.dirname(__file__) + config.get('final_path') # TODO: rename all config variables
+output_format = helper.get_format(config) # TODO: rename all config variables
+cfg_query_type: str = "incremental" # TODO: establish this in the config
 # prefix_path = "V:/BI Project/Temp Files"
 # final_path = "V:/BI Project/New Files for Devin"
 
@@ -49,6 +50,31 @@ for temps in glob.glob(os.path.join(prefix_path, "**"), recursive=True):
     if temps.endswith((".csv", ".gz")):
         os.remove(temps)
 
+
+
+async def get_canvas_data(table: str, output_directory: str, format=Format.CSV, query_type="incremental"):
+    """
+    Retrieves data files from Canvas for the specified Canvas table.
+
+    :param table: A Canvas table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#datasets
+    :param output_directory: The output directory for the generated data files.
+    :param format: The desired format for the data files: `CSV`, `JSONL`, `TSV`, or `Parquet`
+    :returns: #TODO
+    """
+
+    async with DAPClient() as session:
+        if query_type == "snapshot":
+            query = SnapshotQuery(format=format, mode=None)
+        elif query_type == "incremental":
+            query = IncrementalQuery(format=format, mode=None, since=last_seen, until=None)
+
+        query_object = await session.get_table_data("canvas", table, query)
+        await session.download_object(query_object.objects[0], output_directory, decompress=True)
+
+        helper.temp_file_rename(output_directory, table)
+        return
+    
+    
 
 async def update_courses():
     async with DAPClient() as session:
@@ -513,9 +539,11 @@ async def update_users():
 
 
 async def update_all():
+    await get_canvas_data("enrollment_terms", prefix_path, output_format, "snapshot") #TODO: enable after testing #cfg_query_type)
+
     # await update_courses()
     # await update_course_sections()
-    await update_enrollment_terms(output_format)
+    # await update_enrollment_terms(output_format)
     # await update_enrollments()
     # await update_pseudonyms()
     # await update_scores()
