@@ -4,6 +4,7 @@ import asyncio
 import gzip
 import shutil
 import glob
+from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from urllib.parse import ParseResult, urlparse
 import pandas as pd
@@ -47,20 +48,28 @@ last_seen = datetime.now(timezone.utc) - timedelta(days=1)
 
 # clear temp files from subfolders
 for temps in glob.glob(os.path.join(prefix_path, "**"), recursive=True):
-    if temps.endswith((".csv", ".gz")):
+    if temps.endswith((".csv", ".gz")): #TODO: refactor into helper function, add tsv and parquet
         os.remove(temps)
 
 
 
-async def get_canvas_data(table: str, output_directory: str, format=Format.CSV, query_type="incremental"):
+async def get_canvas_data(table: str, output_directory: str, format=Format.CSV, query_type="incremental") -> None:
     """
     Retrieves data files from Canvas for the specified Canvas table.
 
     :param table: A Canvas table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#datasets
     :param output_directory: The output directory for the generated data files.
     :param format: The desired format for the data files: `CSV`, `JSONL`, `TSV`, or `Parquet`
-    :returns: #TODO
     """
+
+    if format == Format.CSV:
+        output_directory = output_directory + "/csv"
+    elif format == Format.JSONL:
+        output_directory = output_directory + "/json"
+    elif format == Format.TSV:
+        output_directory = output_directory + "/tsv"
+    elif format == Format.Parquet:
+        output_directory = output_directory + "/parquet"
 
     async with DAPClient() as session:
         if query_type == "snapshot":
@@ -69,12 +78,13 @@ async def get_canvas_data(table: str, output_directory: str, format=Format.CSV, 
             query = IncrementalQuery(format=format, mode=None, since=last_seen, until=None)
 
         query_object = await session.get_table_data("canvas", table, query)
-        await session.download_object(query_object.objects[0], output_directory, decompress=True)
+        filename = await session.download_object(query_object.objects[0], output_directory, decompress=True)
 
-        helper.temp_file_rename(output_directory, table)
-        return
+        p = Path(filename)
+        p.rename(p.with_stem(table))
+        
     
-    
+
 
 async def update_courses():
     async with DAPClient() as session:

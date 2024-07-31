@@ -3,6 +3,8 @@ resources/
 *.env
 *.csv
 *.json
+*.tsv
+*.parquet
 *.gz
 *.log
 *.pyc
