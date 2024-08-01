@@ -4,6 +4,8 @@ import asyncio
 import gzip
 import shutil
 import glob
+import logging
+import shutil
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from urllib.parse import ParseResult, urlparse
@@ -17,8 +19,10 @@ from dotenv import load_dotenv, find_dotenv
 
 from dap.api import DAPClient
 from dap.dap_types import Credentials
-from dap.dap_types import Format, SnapshotQuery, IncrementalQuery
+from dap.dap_types import Format, Mode, SnapshotQuery, IncrementalQuery
 
+logger = logging.getLogger(__name__)
+# logger.propagate = False
 
 CONFIG_DIR = os.path.dirname(__file__) + '/../config.yml'
 config = yaml.safe_load(open(CONFIG_DIR))
@@ -46,12 +50,8 @@ cfg_query_type: str = "incremental" # TODO: establish this in the config
 last_seen = datetime.now(timezone.utc) - timedelta(days=1)
 # last_seen = datetime(2024, 5, 1, 0, 0, 0, tzinfo=timezone.utc)
 
-# clear temp files from subfolders
-for temps in glob.glob(os.path.join(prefix_path, "**"), recursive=True):
-    if temps.endswith((".csv", ".gz")): #TODO: refactor into helper function, add tsv and parquet
-        os.remove(temps)
 
-
+# helper.empty_temp(prefix_path) #TODO: put this in main loop
 
 async def get_canvas_data(table: str, output_directory: str, format=Format.CSV, query_type="incremental") -> None:
     """
@@ -64,26 +64,68 @@ async def get_canvas_data(table: str, output_directory: str, format=Format.CSV, 
 
     if format == Format.CSV:
         output_directory = output_directory + "/csv"
+        mode = Mode.expanded
     elif format == Format.JSONL:
         output_directory = output_directory + "/json"
+        mode = None
     elif format == Format.TSV:
         output_directory = output_directory + "/tsv"
+        mode = Mode.expanded
     elif format == Format.Parquet:
         output_directory = output_directory + "/parquet"
+        mode = Mode.expanded
 
     async with DAPClient() as session:
         if query_type == "snapshot":
-            query = SnapshotQuery(format=format, mode=None)
+            query = SnapshotQuery(format=format, mode=mode)
         elif query_type == "incremental":
-            query = IncrementalQuery(format=format, mode=None, since=last_seen, until=None)
+            query = IncrementalQuery(format=format, mode=mode, since=last_seen, until=None) 
 
         query_object = await session.get_table_data("canvas", table, query)
-        filename = await session.download_object(query_object.objects[0], output_directory, decompress=True)
+        filenames = []
 
-        p = Path(filename)
-        p.rename(p.with_stem(table))
-        
+        for object in query_object.objects:
+            filenames.append(await session.download_object(object, output_directory, decompress=True))
+            # filename = await session.download_object(query_object.objects[0], output_directory, decompress=True)
+            # print(filename)
+
+        p = Path(filenames[0])
+        final_file = p.with_stem(table)
+
+        if len(filenames) > 1:
+            with open(final_file, 'wb') as wfd:
+                for f in filenames:
+                    with open(f, 'rb') as fd:
+                        shutil.copyfileobj(fd, wfd)
+                        logger.info(f"Merged file: {final_file}") # This merges headers for CSV and TSV files, figure out how to resolve. Works fine for JSON
+            for file in filenames:
+                if Path(file).is_file():
+                    Path(file).unlink()
+                    logger.info(f"Deleted file: {Path(file)}")
+        else:
+            p.rename(p.with_stem(table))
+            logger.info(f"Created file: {final_file}")
+        # p = Path(filename)
+        # p.rename(p.with_stem(table))
+        # logger.info(f"Created file: {p}")
     
+
+
+# Output generation mode controls how nested fixed-cardinality fields are expanded into columns.
+
+# Mode expanded lays out nested fixed-cardinality fields into several columns.
+# Consider the following example for TSV:
+# tsv meta.ts meta.action key.id value.plain value.nested.sub1 value.nested.sub2 value.nested.sub3 2023-10-23T01:02:03Z U 1 string 1 multi-\nline \N
+
+# Mode condensed keeps nested fields together.
+# Observe how a nested field becomes a single JSON-valued field:
+# tsv meta.ts meta.action key.id value.plain value.nested 2023-10-23T01:02:03Z U 1 string {"sub1": 1, "sub2": "multi-\\nline"}
+
+# In case both JSON and the output format (e.g. CSV or TSV)
+# define escaping rules, they are applied consecutively. This is why there are multiple backslash characters
+# in the example above: JSON escapes a newline character as \n, and then TSV escapes the backslash character to make the sequence \\n.
+
+
 
 
 async def update_courses():
@@ -549,11 +591,13 @@ async def update_users():
 
 
 async def update_all():
-    await get_canvas_data("enrollment_terms", prefix_path, output_format, "snapshot") #TODO: enable after testing #cfg_query_type)
+    # await get_canvas_data("enrollment_terms", prefix_path, output_format, "snapshot") #TODO: enable after testing #cfg_query_type)
+    # await get_canvas_data("courses", prefix_path, output_format, "incremental")
+    # await get_canvas_data("course_sections", prefix_path, output_format, "incremental")
+    # await get_canvas_data("enrollments", prefix_path, output_format, "incremental")
+    await get_canvas_data("roles", prefix_path, output_format, "snapshot")
+    
 
-    # await update_courses()
-    # await update_course_sections()
-    # await update_enrollment_terms(output_format)
     # await update_enrollments()
     # await update_pseudonyms()
     # await update_scores()

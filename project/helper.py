@@ -1,18 +1,22 @@
 # import os
-import glob
+# import glob
 import datetime
 import logging
 from pathlib import Path
 from dap.dap_types import Format
 
 logger = logging.getLogger(__name__)
+logger.propagate = False
+
+#TODO: move to main script
+# config the logger
 logging.basicConfig(
     filename=Path(__file__).parent
     / "../logs/"
     / datetime.datetime.now().strftime("%Y-%m-%d.log"),
     encoding="utf-8",
     level=logging.DEBUG,
-    format="[%(asctime)s] %(levelname)s %(module)s.py - %(funcName)s: %(message)s",
+    format="%(asctime)s :: %(levelname)-8s :: %(module)s.%(funcName)s: %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
@@ -49,6 +53,26 @@ def get_format(config_format: dict = {"output_format":"csv"}) -> Format:
             logger.warning(f"Specified format does not exist, expected one of (CSV, JSONL, TSV, Parquet): {config_format}")
             logger.info("Defaulting to CSV.")
             return Format.CSV
+
+
+def empty_temp(temp_path: str) -> None:
+    """
+    Empties the data/temp folder of data files.
+
+    :param temp_path: Path to the directory that stores the temporary data files.
+    """
+
+    file_extensions = ['*.csv', '*.json', '*.tsv', "*.parquet"]
+
+    for extension in file_extensions:
+        for temp in Path(temp_path).rglob(extension):
+            if Path(temp).is_file():
+                Path(temp).unlink()
+                logger.info(f"Deleted file: {Path(temp)}")
+
+
+
+
 
 
 
