@@ -6,7 +6,7 @@ from pathlib import Path
 from dap.dap_types import Format
 
 logger = logging.getLogger(__name__)
-logger.propagate = False
+logger.propagate = False #TODO: check if messages from here still show up in logs
 
 #TODO: move to main script
 # config the logger

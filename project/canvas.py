@@ -60,55 +60,65 @@ async def get_canvas_data(table: str, output_directory: str, format=Format.CSV, 
     :param table: A Canvas table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#datasets
     :param output_directory: The output directory for the generated data files.
     :param format: The desired format for the data files: `CSV`, `JSONL`, `TSV`, or `Parquet`
+    :param query_type: The desired query type: `incremental` or `snapshot`
     """
 
-    if format == Format.CSV:
-        output_directory = output_directory + "/csv"
-        mode = Mode.expanded
-    elif format == Format.JSONL:
-        output_directory = output_directory + "/json"
-        mode = None
-    elif format == Format.TSV:
-        output_directory = output_directory + "/tsv"
-        mode = Mode.expanded
-    elif format == Format.Parquet:
-        output_directory = output_directory + "/parquet"
-        mode = Mode.expanded
+    mode = Mode.expanded # lays out nested fixed-cardinality fields into several columns
+
+     # adjust output directory and mode based on the format
+    match format:
+        case Format.CSV:
+            output_directory = Path(output_directory) / "csv"
+        case Format.JSONL:
+            output_directory = Path(output_directory) / "json"
+            mode = None # JSON doesn't accept a mode parameter
+        case Format.TSV:
+            output_directory = Path(output_directory) / "tsv"
+        case Format.Parquet:
+            output_directory = Path(output_directory) / "parquet"
+
+    # ensure output directory exists
+    output_directory.mkdir(parents=True, exist_ok=True)
 
     async with DAPClient() as session:
         if query_type == "snapshot":
             query = SnapshotQuery(format=format, mode=mode)
         elif query_type == "incremental":
             query = IncrementalQuery(format=format, mode=mode, since=last_seen, until=None) 
+        else:
+            raise ValueError("Invalid query_type. Must be 'incremental' or 'snapshot'.")
 
+        # fetch table data into web server
         query_object = await session.get_table_data("canvas", table, query)
+        
         filenames = []
-
         for object in query_object.objects:
-            filenames.append(await session.download_object(object, output_directory, decompress=True))
-            # filename = await session.download_object(query_object.objects[0], output_directory, decompress=True)
-            # print(filename)
+            filename = await session.download_object(object, output_directory, decompress=True)
+            filenames.append(filename)
 
         p = Path(filenames[0])
         final_file = p.with_stem(table)
 
         if len(filenames) > 1:
+            # merge files if more than one
             with open(final_file, 'wb') as wfd:
-                for f in filenames:
-                    with open(f, 'rb') as fd:
-                        shutil.copyfileobj(fd, wfd)
-                        logger.info(f"Merged file: {final_file}") # This merges headers for CSV and TSV files, figure out how to resolve. Works fine for JSON
+                for file in filenames:
+                    with open(file, 'rb') as fd:
+                        await asyncio.to_thread(shutil.copyfileobj, fd, wfd)
+                        logger.info(f"Merged file: {final_file}") #TODO: This merges headers for CSV and TSV files, figure out how to resolve. Works fine for JSON
+            
+            # delete original files
             for file in filenames:
-                if Path(file).is_file():
-                    Path(file).unlink()
-                    logger.info(f"Deleted file: {Path(file)}")
+                file_path = Path(file)
+                if file_path.is_file():
+                    file_path.unlink()
+                    logger.info(f"Deleted file: {file_path}")
+
         else:
+            # rename the single file
             p.rename(p.with_stem(table))
             logger.info(f"Created file: {final_file}")
-        # p = Path(filename)
-        # p.rename(p.with_stem(table))
-        # logger.info(f"Created file: {p}")
-    
+
 
 
 # Output generation mode controls how nested fixed-cardinality fields are expanded into columns.
@@ -590,23 +600,86 @@ async def update_users():
         dupes_removed.to_csv(os.path.join(final_path, "canvas-users.csv"), index=False)
 
 
-async def update_all():
-    # await get_canvas_data("enrollment_terms", prefix_path, output_format, "snapshot") #TODO: enable after testing #cfg_query_type)
-    # await get_canvas_data("courses", prefix_path, output_format, "incremental")
-    # await get_canvas_data("course_sections", prefix_path, output_format, "incremental")
-    # await get_canvas_data("enrollments", prefix_path, output_format, "incremental")
-    await get_canvas_data("roles", prefix_path, output_format, "snapshot")
-    
 
-    # await update_enrollments()
-    # await update_pseudonyms()
-    # await update_scores()
-    # await update_users()
+
+
+
+async def update_all(table_id, work_queue):
+    while not work_queue.empty():
+        table = await work_queue.get()
+
+        try:
+            logger.info(f"Task [{table_id}] beginning Canvas data pull for table: {table}.")
+            await get_canvas_data(table, prefix_path, output_format, "incremental")
+            logger.info(f"Task [{table_id}] completed Canvas data pull for table: {table}.")
+        except Exception as e:
+            logger.error(f"Task [{table_id}] failed for table: {table}. Error: {e}")
+        finally:
+            work_queue.task_done()  # mark the task as done in the queue
 
 
 async def main():
-    task = asyncio.create_task(update_all())
-    await task
+    work_queue = asyncio.Queue()
+    tables = [
+        "enrollment_terms",
+        "courses",
+        "course_sections",
+        "enrollments",
+        "users",
+        "pseudonyms",
+        "scores"
+    ]
+
+    # add tables to the queue
+    for table in tables:
+        await work_queue.put(table)
+
+    # create and gather tasks for updating all tables
+    tasks = [asyncio.create_task(update_all(table, work_queue)) for table in tables]
+    
+    # optionally handle exceptions for individual tasks
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    
+    # handle exceptions if needed
+    for result in results:
+        if isinstance(result, Exception):
+            logger.error(f"An error occurred: {result}")
 
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())
+
+
+
+
+
+
+
+
+
+    # logger.info(f"Task [{table_id}] beginning Canvas data pull.")
+    # await get_canvas_data(table, prefix_path, output_format, "incremental")
+
+  # await get_canvas_data("enrollment_terms", prefix_path, output_format, "snapshot") #TODO: enable after testing #cfg_query_type)
+    # await get_canvas_data("courses", prefix_path, output_format, "incremental") #TODO: add links to dataset site for each as reference
+    # await get_canvas_data("course_sections", prefix_path, output_format, "incremental")
+    # await get_canvas_data("enrollments", prefix_path, output_format, "incremental")
+    # await get_canvas_data("roles", prefix_path, output_format, "snapshot")
+    # await get_canvas_data("users", prefix_path, output_format, "incremental")
+    # await get_canvas_data("pseudonyms", prefix_path, output_format, "incremental")
+    # await get_canvas_data("scores", prefix_path, output_format, "incremental")
+
+
+    # await asyncio.gather(
+    #     asyncio.create_task(update_all(tables[0], work_queue)),
+    #     asyncio.create_task(update_all(tables[1], work_queue)),
+    #     asyncio.create_task(update_all(tables[2], work_queue)),
+    #     asyncio.create_task(update_all(tables[3], work_queue)),
+    #     asyncio.create_task(update_all(tables[4], work_queue)),
+    #     asyncio.create_task(update_all(tables[5], work_queue)),
+    #     asyncio.create_task(update_all(tables[6], work_queue))
+    # )
+
+
+    # task = asyncio.create_task(update_all())
+    # await task
