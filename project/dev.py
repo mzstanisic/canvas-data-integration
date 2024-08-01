@@ -17,6 +17,26 @@ from dap.dap_types import Format, IncrementalQuery, SnapshotQuery
 from pathlib import Path
 
 
+import codecs
+
+def try_encodings(file_path):
+    encodings = ['utf-8', 'utf-16', 'iso-8859-1', 'cp1252']
+    for encoding in encodings:
+        try:
+            with codecs.open(file_path, 'r', encoding) as f:
+                f.read()
+            print(f"Encoding {encoding} works for {file_path}")
+            return encoding
+        except UnicodeDecodeError:
+            print(f"Encoding {encoding} failed for {file_path}")
+    print("No suitable encoding found")
+    return None
+
+# Example usage
+file_path = r"C:\Users\stanisim\Desktop\canvas-targetx-data-integration\data\temp\json\courses.json"
+encoding = try_encodings(file_path)
+
+
 quit()
 
 # print(Path(__file__).parent)
