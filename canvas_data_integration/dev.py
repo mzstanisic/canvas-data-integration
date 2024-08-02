@@ -7,7 +7,7 @@ import glob
 from datetime import datetime, timedelta, timezone
 from urllib.parse import ParseResult, urlparse
 import pandas as pd
-import canvas_data_integration.utils as utils
+import utils
 import aiofiles
 import yaml
 from dotenv import load_dotenv, find_dotenv
@@ -19,25 +19,27 @@ from pathlib import Path
 
 import codecs
 
-def try_encodings(file_path):
-    encodings = ['utf-8', 'utf-16', 'iso-8859-1', 'cp1252']
-    for encoding in encodings:
-        try:
-            with codecs.open(file_path, 'r', encoding) as f:
-                f.read()
-            print(f"Encoding {encoding} works for {file_path}")
-            return encoding
-        except UnicodeDecodeError:
-            print(f"Encoding {encoding} failed for {file_path}")
-    print("No suitable encoding found")
-    return None
-
-# Example usage
-file_path = r"C:\Users\stanisim\Desktop\canvas-targetx-data-integration\data\temp\json\courses.json"
-encoding = try_encodings(file_path)
-
-
+directory = r"C:\Users\stanisim\Desktop\canvas-data-integration\data\temp\json\users.json"
+df = pd.read_json(directory, lines=True)
+print(df)
 quit()
+
+# def try_encodings(file_path):
+#     encodings = ['utf-8', 'utf-16', 'iso-8859-1', 'cp1252']
+#     for encoding in encodings:
+#         try:
+#             with codecs.open(file_path, 'r', encoding) as f:
+#                 f.read()
+#             print(f"Encoding {encoding} works for {file_path}")
+#             return encoding
+#         except UnicodeDecodeError:
+#             print(f"Encoding {encoding} failed for {file_path}")
+#     print("No suitable encoding found")
+#     return None
+
+# # Example usage
+# file_path = r"C:\Users\stanisim\Desktop\canvas-targetx-data-integration\data\temp\json\courses.json"
+# encoding = try_encodings(file_path)
 
 # print(Path(__file__).parent)
 # print((__file__).parent) Path().pure

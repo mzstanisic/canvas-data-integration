@@ -140,169 +140,170 @@ async def get_canvas_data(table: str, output_directory: str, format=Format.CSV, 
 
 
 
-async def read_json_to_dataframe(file_path: Path, encoding='utf-8') -> pd.DataFrame:
-    """
-    Reads a JSON file into a pandas DataFrame.
-
-    Assumes the JSON file is a JSON array.
-
-    :param file_path: The path to the JSON file.
-    :param encoding: The encoding to use when reading the file.
-    :return: A pandas DataFrame containing the JSON data.
-    """
-    async with aiofiles.open(file_path, mode='r', encoding=encoding) as f:
-        content = await f.read()
-        try:
-            data = json.loads(content)
-            if not isinstance(data, list):
-                logger.error(f"Expected a JSON array in file {file_path}, but found {type(data).__name__}.")
-                return pd.DataFrame()
-            return pd.DataFrame(data)
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to decode JSON file {file_path}. Error: {e}")
-            return pd.DataFrame()
 
 
-def flatten_and_select_columns(df: pd.DataFrame, columns: List[str]) -> pd.DataFrame:
-    """
-    Flattens nested JSON data in a DataFrame and selects only specified columns.
+# def flatten_and_select_columns(df: pd.DataFrame, columns: List[str]) -> pd.DataFrame:
+#     """
+#     Flattens nested JSON data in a DataFrame and selects only specified columns.
 
-    :param df: The DataFrame containing JSON data.
-    :param columns: The list of columns to retain after flattening.
-    :return: A new DataFrame with flattened JSON data and selected columns.
-    """
-    flat_df = pd.json_normalize(df.to_dict(orient='records'))
-    print(f"Flattened DataFrame columns: {flat_df.columns.tolist()}")  # Print columns for debugging
+#     :param df: The DataFrame containing JSON data.
+#     :param columns: The list of columns to retain after flattening.
+#     :return: A new DataFrame with flattened JSON data and selected columns.
+#     """
+#     flat_df = pd.json_normalize(df.to_dict(orient='records'))
+#     print(f"Flattened DataFrame columns: {flat_df.columns.tolist()}")  # Print columns for debugging
 
-    selected_columns = [col for col in columns if col in flat_df.columns]
-    print(f"Columns to keep: {selected_columns}")  # Print columns to keep for debugging
+#     selected_columns = [col for col in columns if col in flat_df.columns]
+#     print(f"Columns to keep: {selected_columns}")  # Print columns to keep for debugging
 
-    filtered_df = flat_df[selected_columns]
+#     filtered_df = flat_df[selected_columns]
 
-    return filtered_df
+#     return filtered_df
 
-async def process_file(json_file: Path, dataframes: dict, columns_to_keep: list) -> None:
-    """
-    Helper function to process a single JSON file and store the DataFrame in the dictionary.
+# async def read_json_to_dataframe(file_path: Path, encoding='utf-8') -> pd.DataFrame:
+#     """
+#     Reads a JSON file into a pandas DataFrame.
 
-    :param json_file: The path to the JSON file.
-    :param dataframes: The dictionary to store DataFrames with file stems as keys.
-    """
-    try:
-        df = await read_json_to_dataframe(json_file)
-        if not df.empty:
-            stem = json_file.stem
-            # columns = columns_mapping.get(stem, [])
-            df = flatten_and_select_columns(df, columns_to_keep)
-            dataframes[stem] = df
-            logger.info(f"Loaded JSON file {json_file} into DataFrame with key: {stem}.")
-        else:
-            logger.warning(f"No data loaded from {json_file}.")
-    except Exception as e:
-        logger.error(f"Failed to process file {json_file}. Error: {e}")
+#     Assumes the JSON file is a JSON array.
+
+#     :param1 file_path (Path): The path to the JSON file.
+#     :param2 encoding (str): The encoding to use when reading the file.
+#     :return: A pandas DataFrame containing the JSON data.
+#     """
+#     async with aiofiles.open(file_path, mode='r', encoding=encoding) as f:
+#         content = await f.read()
+#         try:
+#             data = json.loads(content)
+#             if not isinstance(data, list):
+#                 logger.error(f"Expected a JSON array in file {file_path}, but found {type(data).__name__}.")
+#                 return pd.DataFrame()
+#             return pd.DataFrame(data)
+#         except json.JSONDecodeError as e:
+#             logger.error(f"Failed to decode JSON file {file_path}. Error: {e}")
+#             return pd.DataFrame()
+
+# async def process_file(json_file: Path, dataframes: dict, columns_to_keep: list) -> None:
+#     """
+#     Helper function to process a single JSON file and store the DataFrame in the dictionary.
+
+#     :param1 json_file (Path): The path to the JSON file.
+#     :param2 dataframes (dict): The dictionary to store DataFrames with file stems as keys.
+#     :param3 columns_to_keep (list): The columns to keep for each table.
+#     """
+#     try:
+#         df = await read_json_to_dataframe(json_file)
+#         if not df.empty:
+#             stem = json_file.stem
+#             df = flatten_and_select_columns(df, columns_to_keep)
+#             dataframes[stem] = df # dataframes might now be named enrollments.array, etc.
+#             logger.info(f"Loaded JSON file {json_file} into DataFrame with key: {stem}.")
+#         else:
+#             logger.warning(f"No data loaded from {json_file}.")
+#     except Exception as e:
+#         logger.error(f"Failed to process file {json_file}. Error: {e}")
 
 
-async def load_and_process_json_files(directory: str, columns_mapping: Dict[str, List[str]]) -> dict:
-    """
-    Reads all JSON files in the specified directory into DataFrames, flattens them,
-    and selects only specified columns.
+# async def load_and_process_json_files(directory: str, columns_mapping: Dict[str, List[str]]) -> dict:
+#     """
+#     Reads all JSON files in the specified directory into DataFrames, flattens them,
+#     and selects only specified columns.
 
-    :param directory: The path to the directory containing JSON files.
-    :param columns_mapping: A dictionary where keys are JSON file name stems and values are lists of columns to keep.
-    :return: A dictionary where keys are the JSON file name stems and values are filtered DataFrames.
-    """
-    path = Path(directory)
-    if not path.is_dir():
-        raise ValueError(f"The path {directory} is not a valid directory.")
+#     :param1 directory (str): The path to the directory containing JSON files.
+#     :param2 columns_mapping (dict): A dictionary where keys are JSON file name stems and values are lists of columns to keep.
+#     :return dataframes: A dictionary where keys are the JSON file name stems and values are filtered DataFrames.
+#     """
+#     path = Path(directory)
+#     if not path.is_dir():
+#         raise ValueError(f"The path {directory} is not a valid directory.")
     
-    json_files = [file for file in path.glob("*.array.json")]
+#     json_files = [file for file in path.glob("*.array.json")]
 
-    dataframes = {}
-    tasks = []
+#     dataframes = {}
+#     tasks = []
 
-    for json_file in json_files:
-        stem = json_file.stem
-        columns_to_keep = columns_mapping.get(stem, [])
+#     for json_file in json_files:
+#         stem = json_file.stem
+#         columns_to_keep = columns_mapping.get(stem, []) # stem now has .array attached because of previous processing
 
-        tasks.append(asyncio.create_task(process_file(json_file, dataframes, columns_to_keep)))
+#         tasks.append(asyncio.create_task(process_file(json_file, dataframes, columns_to_keep)))
 
-    await asyncio.gather(*tasks)
+#     await asyncio.gather(*tasks)
 
-    return dataframes
-
-
-async def wrap_json_in_array(file_path: Path, encoding='utf-8') -> None:
-    """
-    Wraps all JSON objects in a file into a JSON array.
-
-    Reads a file where each line is a JSON object, and writes a new file where all
-    JSON objects are enclosed in a JSON array.
-
-    :param file_path: The path to the input JSON file.
-    :param encoding: The encoding to use when reading the file.
-    """
-    output_file_path = file_path.with_suffix('.array.json')
-
-    json_objects = []
-
-    async with aiofiles.open(file_path, mode='r', encoding=encoding) as infile:
-        async for line in infile:
-            line = line.strip()
-            if not line:
-                continue  # Skip empty lines
-
-            try:
-                json_objects.append(json.loads(line))
-            except json.JSONDecodeError as e:
-                logger.error(f"Failed to decode JSON line in file {file_path}. Error: {e}. Line content: {line}")
-
-    if json_objects:
-        async with aiofiles.open(output_file_path, mode='w', encoding=encoding) as outfile:
-            await outfile.write(json.dumps(json_objects, indent=2))
-        logger.info(f"Wrapped JSON objects into array and saved to {output_file_path}")
-    else:
-        logger.warning(f"No valid JSON objects found in {file_path}. No output file created.")
+#     return dataframes
 
 
-async def wrap_all_json_files(directory: str, encoding='utf-8') -> None:
-    """
-    Wraps all JSON files in the specified directory into JSON arrays.
+# async def wrap_json_in_array(file_path: Path, encoding='utf-8') -> None:
+#     """
+#     Wraps all JSON objects in a file into a JSON array.
 
-    :param directory: The path to the directory containing JSON files.
-    :param encoding: The encoding to use when reading and writing files.
-    """
-    path = Path(directory)
-    if not path.is_dir():
-        raise ValueError(f"The path {directory} is not a valid directory.")
+#     Reads a file where each line is a JSON object, and writes a new file where all
+#     JSON objects are enclosed in a JSON array.
 
-    json_files = [file for file in path.glob("*.json")]
-    tasks = [wrap_json_in_array(file, encoding) for file in json_files]
+#     :param1 file_path (Path): The path to the input JSON file.
+#     :param2 encoding (str): The encoding to use when reading the file.
+#     """
+#     output_file_path = file_path.with_suffix('.array.json')
+
+#     json_objects = []
+
+#     async with aiofiles.open(file_path, mode='r', encoding=encoding) as infile:
+#         async for line in infile:
+#             line = line.strip()
+#             if not line:
+#                 continue  # skip empty lines
+
+#             try:
+#                 json_objects.append(json.loads(line))
+#             except json.JSONDecodeError as e:
+#                 logger.error(f"Failed to decode JSON line in file {file_path}. Error: {e}. Line content: {line}")
+
+#     if json_objects:
+#         async with aiofiles.open(output_file_path, mode='w', encoding=encoding) as outfile:
+#             await outfile.write(json.dumps(json_objects, indent=2))
+#         logger.info(f"Wrapped JSON objects into array and saved to {output_file_path}")
+#     else:
+#         logger.warning(f"No valid JSON objects found in {file_path}. No output file created.")
+
+
+# async def wrap_all_json_files(directory: str, encoding='utf-8') -> None:
+#     """
+#     Wraps all JSON files in the specified directory into JSON arrays.
+
+#     :param1 directory (str): The path to the directory containing JSON files.
+#     :param2 encoding (str): The encoding to use when reading and writing files.
+#     """
+#     path = Path(directory)
+#     if not path.is_dir():
+#         raise ValueError(f"The path {directory} is not a valid directory.")
+
+#     json_files = [file for file in path.glob("*.json")]
+#     tasks = [wrap_json_in_array(file, encoding) for file in json_files]
     
-    await asyncio.gather(*tasks)
+#     await asyncio.gather(*tasks)
 
 
-async def main_df():
-    directory = r"C:\Users\stanisim\Desktop\canvas-targetx-data-integration\data\temp\json"
+# async def main_df():
+#     directory = r"C:\Users\stanisim\Desktop\canvas-data-integration\data\temp\json"
     
-    # define column mappings for each JSON file
-    columns_mapping = {
-        'enrollment_terms.array': ['key.id', 'value.sis_source_id', 'value.workflow_state', 'meta.ts'],
-        'courses.array': ['key.id', 'value.sis_source_id', 'value.name', 'value.enrollment_term_id', 'value.workflow_state', 'value.is_public', 'meta.ts'],
-        'course_sections.array': ['key.id', 'value.name', 'value.course_id', 'value.workflow_state', 'meta.ts'],
-        'enrollments.array': ['key.id', 'value.last_activity_at', 'value.total_activity_time', 'value.course_section_id', 'value.course_id', 'value.role_id', 'value.user_id', 'value.sis_pseudonym_id', 'value.workflow_state', 'value.type', 'meta.ts'],
-        'users.array': ['key.id', 'value.workflow_state', 'value.name', 'meta.ts'],
-        'pseudonyms.array': ['key.id', 'value.sis_user_id', 'value.unique_id', 'value.workflow_state', 'meta.ts'],
-        'scores.array': ['key.id', 'value.current_score', 'value.enrollment_id', 'value.workflow_state', 'value.course_score', 'meta.ts']
-    }
+#     # define column mappings for each JSON file
+#     columns_mapping = {
+#         'enrollment_terms': ['key.id', 'value.sis_source_id', 'value.workflow_state', 'meta.ts'],
+#         'courses': ['key.id', 'value.sis_source_id', 'value.name', 'value.enrollment_term_id', 'value.workflow_state', 'value.is_public', 'meta.ts'],
+#         'course_sections': ['key.id', 'value.name', 'value.course_id', 'value.workflow_state', 'meta.ts'],
+#         'enrollments': ['key.id', 'value.last_activity_at', 'value.total_activity_time', 'value.course_section_id', 'value.course_id', 'value.role_id', 'value.user_id', 'value.sis_pseudonym_id', 'value.workflow_state', 'value.type', 'meta.ts'],
+#         'users': ['key.id', 'value.workflow_state', 'value.name', 'meta.ts'],
+#         'pseudonyms': ['key.id', 'value.sis_user_id', 'value.unique_id', 'value.workflow_state', 'meta.ts'],
+#         'scores': ['key.id', 'value.current_score', 'value.enrollment_id', 'value.workflow_state', 'value.course_score', 'meta.ts']
+#     }
 
-    # wrap JSON files into arrays
-    await wrap_all_json_files(directory)
+#     # wrap JSON files into arrays, since they don't come out of Canvas that way
+#     await wrap_all_json_files(directory)
 
-    # load and process JSON files into DataFrames
-    dataframes = await load_and_process_json_files(directory, columns_mapping)
+#     # load and process JSON files into DataFrames
+#     dataframes = await load_and_process_json_files(directory, columns_mapping)
     
-    for key, df in dataframes.items():
-        print(f"DataFrame for {key}:\n{df.head()}")
+#     for key, df in dataframes.items():
+#         print(f"DataFrame for {key}:\n{df.head()}")
 
 
 
