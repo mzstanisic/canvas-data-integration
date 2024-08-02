@@ -5,7 +5,7 @@
 - establish requirements.txt
 
 ### Project Structure
-Try something like thiS (view in edit mode):
+Try something like this (view in code view, not preview):
 
 canvas_data_project/
 │
