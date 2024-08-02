@@ -855,9 +855,7 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-
-    asyncio.run(main_df()) # specifically for the dataframe operations
-    # asyncio.run(main())
+    asyncio.run(main())
 
 
 

@@ -3,13 +3,12 @@ processing.py
 
 Imports the JSON Line files into pandas dataframes, flattens them,
 and extracts only the selected columns for each table in order to join them
-and create a final dataframe.
+and create a final dataframe. Finally, spits out a final CSV to the data folder
+for manual operations and review.
 """
 
-import json
 import asyncio
 import logging
-import aiofiles
 import pandas as pd
 from pathlib import Path
 from typing import Dict, List
@@ -32,7 +31,7 @@ def flatten_and_select_columns(df: pd.DataFrame, columns: List[str]) -> pd.DataF
     return filtered_df
 
 
-async def process_file(json_file: Path, dataframes: dict, columns_to_keep: list) -> None:
+def process_file(json_file: Path, dataframes: dict, columns_to_keep: list) -> None:
     """
     Helper function to process a single JSON file and store the DataFrame in the dictionary.
 
@@ -74,17 +73,22 @@ async def load_and_process_json_files(directory: str, columns_mapping: Dict[str,
     for json_file in json_files:
         stem = json_file.stem
         columns_to_keep = columns_mapping.get(stem, [])
-
         tasks.append(asyncio.create_task(process_file(json_file, dataframes, columns_to_keep)))
 
     await asyncio.gather(*tasks)
-
     return dataframes
 
 
-async def main():
+async def main() -> dict:
+    """
+    Main function to load and process JSON files into DataFrames.
+
+    :return: A dictionary of DataFrames processed from JSON files.
+    """
+    # TODO: replace with proper config directories
     directory = r"C:\Users\stanisim\Desktop\canvas-data-integration\data\temp\json"
-    
+    f_directory = r"C:\Users\stanisim\Desktop\canvas-data-integration\data\final"
+    merged = r"C:\Users\stanisim\Desktop\canvas-data-integration\data\final\FINAL.csv"
 
     # define column mappings for each JSON file
     columns_mapping = {
@@ -99,9 +103,14 @@ async def main():
 
     # load and process JSON files into DataFrames
     dataframes = await load_and_process_json_files(directory, columns_mapping)
+    # TODO: repeat for CSV, TSV, and Parquet
     
+    # save CSV files to data/final
     for key, df in dataframes.items():
-        print(f"DataFrame for {key}:\n{df.head()}")
+        final_dir = Path(f_directory) / f"{key}.csv"
+        df.to_csv(final_dir, index=False)
+
+    return dataframes
 
 
 if __name__ == "__main__":
