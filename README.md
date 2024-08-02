@@ -1,10 +1,13 @@
-### TODO
-- separate file types into their own modules, recieve final files from Canvas module
-- establish main module
-- search for environment variables first, then search for file
-- establish requirements.txt
+# TODO
 
-### Project Structure
+- establish main module
+- requirements.txt: <https://pip.pypa.io/en/stable/cli/pip_freeze/#pip-freeze>
+- rotate logs past retention period
+- check for relevant environment variables, otherwise search for file
+- change defaults from CSV to JSON
+
+## Project Structure
+
 Try something like this (view in code view, not preview):
 
 canvas_data_project/

@@ -7,7 +7,7 @@ import glob
 from datetime import datetime, timedelta, timezone
 from urllib.parse import ParseResult, urlparse
 import pandas as pd
-import helper
+import canvas_data_integration.utils as utils
 import aiofiles
 import yaml
 from dotenv import load_dotenv, find_dotenv

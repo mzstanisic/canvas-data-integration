@@ -1,4 +1,3 @@
-# file needs to start at current term
 import os
 import asyncio
 import gzip
@@ -12,7 +11,7 @@ from typing import List, Dict
 from urllib.parse import ParseResult, urlparse
 import pandas as pd
 
-import helper
+import canvas_data_integration.utils as utils
 import aiofiles
 import json
 
@@ -41,7 +40,7 @@ credentials = Credentials.create(client_id=client_id, client_secret=client_secre
 
 prefix_path: str = os.path.dirname(__file__) + config.get('prefix_path') # TODO: rename all config variables
 final_path: str = os.path.dirname(__file__) + config.get('final_path') # TODO: rename all config variables
-output_format = helper.get_format(config) # TODO: rename all config variables
+output_format = utils.get_format(config) # TODO: rename all config variables
 cfg_query_type: str = "incremental" # TODO: establish this in the config
 # prefix_path = "V:/BI Project/Temp Files"
 # final_path = "V:/BI Project/New Files for Devin"
@@ -121,19 +120,6 @@ async def get_canvas_data(table: str, output_directory: str, format=Format.CSV, 
 
 
 
-# Output generation mode controls how nested fixed-cardinality fields are expanded into columns.
-
-# Mode expanded lays out nested fixed-cardinality fields into several columns.
-# Consider the following example for TSV:
-# tsv meta.ts meta.action key.id value.plain value.nested.sub1 value.nested.sub2 value.nested.sub3 2023-10-23T01:02:03Z U 1 string 1 multi-\nline \N
-
-# Mode condensed keeps nested fields together.
-# Observe how a nested field becomes a single JSON-valued field:
-# tsv meta.ts meta.action key.id value.plain value.nested 2023-10-23T01:02:03Z U 1 string {"sub1": 1, "sub2": "multi-\\nline"}
-
-# In case both JSON and the output format (e.g. CSV or TSV)
-# define escaping rules, they are applied consecutively. This is why there are multiple backslash characters
-# in the example above: JSON escapes a newline character as \n, and then TSV escapes the backslash character to make the sequence \\n.
 
 
 
@@ -151,37 +137,8 @@ async def get_canvas_data(table: str, output_directory: str, format=Format.CSV, 
 
 
 
-async def wrap_json_in_array(file_path: Path, encoding='utf-8') -> None:
-    """
-    Wraps all JSON objects in a file into a JSON array.
 
-    Reads a file where each line is a JSON object, and writes a new file where all
-    JSON objects are enclosed in a JSON array.
 
-    :param file_path: The path to the input JSON file.
-    :param encoding: The encoding to use when reading the file.
-    """
-    output_file_path = file_path.with_suffix('.array.json')
-
-    json_objects = []
-
-    async with aiofiles.open(file_path, mode='r', encoding=encoding) as infile:
-        async for line in infile:
-            line = line.strip()
-            if not line:
-                continue  # Skip empty lines
-
-            try:
-                json_objects.append(json.loads(line))
-            except json.JSONDecodeError as e:
-                logger.error(f"Failed to decode JSON line in file {file_path}. Error: {e}. Line content: {line}")
-
-    if json_objects:
-        async with aiofiles.open(output_file_path, mode='w', encoding=encoding) as outfile:
-            await outfile.write(json.dumps(json_objects, indent=2))
-        logger.info(f"Wrapped JSON objects into array and saved to {output_file_path}")
-    else:
-        logger.warning(f"No valid JSON objects found in {file_path}. No output file created.")
 
 async def read_json_to_dataframe(file_path: Path, encoding='utf-8') -> pd.DataFrame:
     """
@@ -273,6 +230,40 @@ async def load_and_process_json_files(directory: str, columns_mapping: Dict[str,
 
     return dataframes
 
+
+async def wrap_json_in_array(file_path: Path, encoding='utf-8') -> None:
+    """
+    Wraps all JSON objects in a file into a JSON array.
+
+    Reads a file where each line is a JSON object, and writes a new file where all
+    JSON objects are enclosed in a JSON array.
+
+    :param file_path: The path to the input JSON file.
+    :param encoding: The encoding to use when reading the file.
+    """
+    output_file_path = file_path.with_suffix('.array.json')
+
+    json_objects = []
+
+    async with aiofiles.open(file_path, mode='r', encoding=encoding) as infile:
+        async for line in infile:
+            line = line.strip()
+            if not line:
+                continue  # Skip empty lines
+
+            try:
+                json_objects.append(json.loads(line))
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to decode JSON line in file {file_path}. Error: {e}. Line content: {line}")
+
+    if json_objects:
+        async with aiofiles.open(output_file_path, mode='w', encoding=encoding) as outfile:
+            await outfile.write(json.dumps(json_objects, indent=2))
+        logger.info(f"Wrapped JSON objects into array and saved to {output_file_path}")
+    else:
+        logger.warning(f"No valid JSON objects found in {file_path}. No output file created.")
+
+
 async def wrap_all_json_files(directory: str, encoding='utf-8') -> None:
     """
     Wraps all JSON files in the specified directory into JSON arrays.
@@ -288,6 +279,7 @@ async def wrap_all_json_files(directory: str, encoding='utf-8') -> None:
     tasks = [wrap_json_in_array(file, encoding) for file in json_files]
     
     await asyncio.gather(*tasks)
+
 
 async def main_df():
     directory = r"C:\Users\stanisim\Desktop\canvas-targetx-data-integration\data\temp\json"
