@@ -26,39 +26,39 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
-def get_format(config_format: dict = {"output_format":"csv"}) -> Format:
-    """
-    Accepts a selected output format for files from config.yml,
-    and returns the corresponding DAP output format type.
+# def get_format(config_format: dict = {"output_format":"csv"}) -> Format:
+#     """
+#     Accepts a selected output format for files from config.yml,
+#     and returns the corresponding DAP output format type.
     
-    :param1 config_format (dict): The desired format for the data files, specified in the config file: `CSV`, `JSONL`, `TSV`, or `Parquet`
-    :returns: Corresponding DAP format type.
-    """
+#     :param1 config_format (dict): The desired format for the data files, specified in the config file: `CSV`, `JSONL`, `TSV`, or `Parquet`
+#     :returns: Corresponding DAP format type.
+#     """
 
-    if not isinstance(config_format, dict):
-        logger.warning(f"Type mismatch for parameter `config_format`, expected dict: {type(config_format)}")
-        logger.info("Defaulting to CSV.")
-        config_format={"output_format":"csv"}
-    if not config_format.get("output_format"):
-        logger.warning(f"Dictionary `config_format` does not contain an `output_format` key: {config_format}")
-        logger.info("Defaulting to CSV.")
+#     if not isinstance(config_format, dict):
+#         logger.warning(f"Type mismatch for parameter `config_format`, expected dict: {type(config_format)}")
+#         logger.info("Defaulting to CSV.")
+#         config_format={"output_format":"csv"}
+#     if not config_format.get("output_format"):
+#         logger.warning(f"Dictionary `config_format` does not contain an `output_format` key: {config_format}")
+#         logger.info("Defaulting to CSV.")
 
-    config_format = config_format.get("output_format") or "csv"
-    config_format = config_format.lower().strip()
+#     config_format = config_format.get("output_format") or "csv"
+#     config_format = config_format.lower().strip()
 
-    match config_format:
-        case "csv":
-            return Format.CSV
-        case "json" | "jsonl":
-            return Format.JSONL
-        case "tsv":
-            return Format.TSV
-        case "parquet":
-            return Format.Parquet
-        case _:
-            logger.warning(f"Specified format does not exist, expected one of (CSV, JSONL, TSV, Parquet): {config_format}")
-            logger.info("Defaulting to CSV.")
-            return Format.CSV
+#     match config_format:
+#         case "csv":
+#             return Format.CSV
+#         case "json" | "jsonl":
+#             return Format.JSONL
+#         case "tsv":
+#             return Format.TSV
+#         case "parquet":
+#             return Format.Parquet
+#         case _:
+#             logger.warning(f"Specified format does not exist, expected one of (CSV, JSONL, TSV, Parquet): {config_format}")
+#             logger.info("Defaulting to CSV.")
+#             return Format.CSV
 
 
 def empty_temp(temp_path: str) -> None:

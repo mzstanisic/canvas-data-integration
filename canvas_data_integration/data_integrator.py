@@ -4,42 +4,225 @@ data_integrator.py
 
 """
 
+import logging
 import pandas as pd
+from pathlib import Path
+from config import Config
 
-async def main(dataframes: dict) -> pd.DataFrame:
-    # first, rename columns for each dataframe
-    df_enrollment_terms = dataframes["enrollment_terms"].rename(columns={
-        'value.sis_source_id': 'TermCode'
-    })
-    df_courses = dataframes["courses"].rename(columns={
-        'value.sis_source_id': 'CourseTermCRNID',
-        'value.name': 'CourseName'
-    })
-
-    # then, filter each dataframe with the specific where clauses
-    df_enrollment_terms = df_enrollment_terms.query("`TermCode` == '202430_B7'")
-    # df_courses = df_courses.query("`value.workflow_state` == 'available' and `value.is_public` == True")
-    df1_filtered = df1[df1['name'] == 'Term A']
-    df2_filtered = df2[df2['status'] == 'available']
-
-    # then, join the dataframes
-    result = pd.merge(
-        left=df_enrollment_terms,
-        right=df_courses,
-        left_on='key.id',
-        right_on='value.enrollment_term_id'
-    )
-
-    # Perform the join on multiple columns
-    result = pd.merge(
-        left=df1_filtered,
-        right=df2_filtered,
-        left_on=['key_id', 'term_code'],
-        right_on=['key_id', 'term_code']
-    )
+logger = logging.getLogger(__name__)
 
 
-    # and output the final result
-    # one full file with all columns
-    # one final file with only the selected columns of the final query
-    result.to_csv(Path(merged), index=False)
+def rename_dataframe_columns(dataframes: dict) -> dict:
+    """
+    """
+    dataframes_renamed = dataframes
+    try:
+        dataframes_renamed["course_sections"].rename(columns={
+            'key.id': 'course_sections_id',
+            'value.name': 'course_sections_name',
+            'value.course_id': 'course_sections_course_id',
+            'value.workflow_state': 'course_sections_workflow_state',
+            'meta.ts': 'course_sections_timestamp'
+        })
+        dataframes_renamed["courses"].rename(columns={
+            'key.id': 'courses_id',
+            'value.sis_source_id':'courses_sis_source_id',
+            'value.name': 'courses_name',
+            'value.enrollment_term_id': 'courses_enrollment_term_id',
+            'value.workflow_state': 'courses_workflow_state',
+            'value.is_public': 'courses_is_public',
+            'meta.ts': 'course_sections_timestamp'
+        })
+        dataframes_renamed["enrollment_terms"].rename(columns={
+            'key.id': 'enrollment_terms_id',
+            'value.sis_source_id': 'enrollment_terms_sis_source_id',
+            'value.workflow_state': 'enrollment_terms_workflow_state',
+            'meta.ts': 'enrollment_terms_timestamp'
+        })
+        dataframes_renamed["enrollments"].rename(columns={
+            'key.id': 'enrollments_id',
+            'value.last_activity_at':'enrollments_last_activity_at',
+            'value.total_activity_time':'enrollments_total_activity_time',
+            'value.course_section_id':'enrollments_course_section_id',
+            'value.course_id':'enrollments_course_id',
+            'value.role_id':'enrollments_role_id',
+            'value.user_id':'enrollments_user_id',
+            'value.sis_pseudonym_id':'enrollments_sis_pseudonym_id',
+            'value.workflow_state':'enrollments_workflow_state',
+            'value.type':'enrollments_type',
+            'meta.ts':'enrollments_timestamp'
+        })
+        dataframes_renamed["pseudonyms"].rename(columns={
+            'key.id': 'pseudonyms_id',
+            'value.user_id':'pseudonyms_user_id',
+            'value.sis_user_id': 'pseudonyms_sis_user_id',
+            'value.unique_id':'pseudonyms_unique_id',
+            'value.workflow_state': 'pseudonyms_workflow_state',
+            'meta.ts': 'pseudonyms_timestamp'
+        })
+        dataframes_renamed["scores"].rename(columns={
+            'key.id': 'scores_id',
+            'value.current_score': 'scores_current_score',
+            'value.enrollment_id':'scores_enrollment_id',
+            'value.workflow_state': 'scores_workflow_state',
+            'value.course_score':'scores_course_score',
+            'meta.ts': 'scores_timestamp'
+        })
+        dataframes_renamed["users"].rename(columns={
+            'key.id': 'users_id',
+            'value.workflow_state': 'users_workflow_state',
+            'value.name': 'users_name',
+            'meta.ts': 'users_timestamp'
+        })
+
+        # dataframes = dataframes_renamed
+        logger.info("Dataframe columns renamed successfully.")
+        return dataframes_renamed
+    except Exception as e:
+        logger.error(f"Failed to rename dataframe columns. Error: {e}")
+        return dataframes
+
+
+def join_dataframes(dataframes: dict) -> pd.DataFrame:
+    """
+    """
+    try:
+        # student cohort merges
+        merged = pd.merge(
+            left = dataframes["enrollment_terms"],
+            right = dataframes["courses"],
+            left_on = 'enrollment_terms_id',
+            right_on = 'courses_enrollment_term_id'
+        )
+        merged = pd.merge(
+            left = merged,
+            right = dataframes["course_sections"],
+            left_on = 'courses_id',
+            right_on = 'course_sections_course_id'
+        )
+        merged = pd.merge(
+            left = merged,
+            right = dataframes["enrollments"],
+            left_on = ['course_sections_id', 'courses_id'],
+            right_on = ['enrollments_course_section_id', 'enrollments_course_id']
+        )
+        merged = pd.merge(
+            left = merged,
+            right = dataframes["users"],
+            left_on = 'enrollments_user_id',
+            right_on = 'users_id'
+        )
+        merged = pd.merge(
+            left = merged,
+            right = dataframes["pseudonyms"],
+            left_on = ['users_id', 'enrollments_sis_pseudonym_id'],
+            right_on = ['pseudonyms_user_id', 'pseudonyms_id']
+        )
+        merged = pd.merge(
+            left = merged,
+            right = dataframes["scores"],
+            left_on = 'enrollments_id',
+            right_on = "scores_enrollment_id"
+        )
+        logger.info("Merged dataframes successfully.")
+        return merged
+    except Exception as e:
+        logger.error(f"Failed to merge dataframes. Error: {e}")
+
+
+def filter_dataframes(dataframe: pd.DataFrame) -> None:
+    """
+    """
+    try:
+
+        #TODO: remove
+        print(type(dataframe["scores_course_score"]))
+
+        # student cohort filters
+        dataframe = dataframe[dataframe["courses_workflow_state"] == "available"]
+        dataframe = dataframe[dataframe["courses_is_public"] in (True, "true")]
+        dataframe = dataframe[dataframe["course_sections_workflow_state"] == "active"]
+        dataframe = dataframe[dataframe["enrollments_role_id"] in (3, "3")]
+        dataframe = dataframe[dataframe["enrollments_type"] == "StudentEnrollment"]
+        dataframe = dataframe[dataframe["enrollments_workflow_state"] == "active"]
+        dataframe = dataframe[dataframe["users_workflow_state"] == "registered"]
+        dataframe = dataframe[dataframe["pseudonyms_workflow_state"] == "active"]
+        dataframe = dataframe[dataframe["scores_workflow_state"] == "active"]
+        dataframe = dataframe[dataframe["scores_course_score"] in (True, "true")]
+        dataframe = dataframe[dataframe["enrollment_terms_workflow_state"] == "active"]
+        dataframe = dataframe[dataframe["enrollment_terms_sis_source_id"] == "202430_B7"] #TODO: figure out
+
+        logger.info("Filtered main dataframe successfully.")
+    except Exception as e:
+        logger.error(f"Failed to filter main dataframe. Error: {e}")
+
+
+def drop_and_rename_columns(dataframe: pd.DataFrame) -> None:
+    """
+    """
+    try:
+        # first drop
+        dataframe = dataframe[
+            'enrollment_terms_sis_source_id',
+            'courses_sis_source_id',
+            'courses_name',
+            'course_sections_name',
+            'enrollments_last_activity_at',
+            'enrollments_total_activity_time',
+            'users_name',
+            'pseudonyms_sis_user_id',
+            'pseudonyms_unique_id',
+            'scores_current_score'
+        ]
+
+        # then rename
+        dataframe.rename(columns={
+            'enrollment_terms_sis_source_id':'canvas_term_code',
+            'courses_sis_source_id':'canvas_course_term_crn_id',
+            'courses_name':'canvas_course_name',
+            'course_sections_name':'canvas_course_section_name',
+            # TODO: reserved for teacher XID
+            # TODO: reserved for teacher name
+            'enrollments_last_activity_at': 'canvas_last_activity_date',
+            'enrollments_total_activity_time':'canvas_total_activity_time',
+            'users_name':'canvas_name',
+            'pseudonyms_sis_user_id':'canvas_xid',
+            'pseudonyms_unique_id':'canvas_email',
+            'scores_current_score':'canvas_score'
+        })
+        
+        logger.info("Dropped unnecessary columns, and renamed columns of main dataframe.")
+    except Exception as e:
+        logger.error(f"Failed to drop and rename columns of main dataframe. Error: {e}")
+
+
+def main(dataframes: dict, config: Config) -> pd.DataFrame:
+    """
+    """
+    # rename the selectd dataframe columns for further processing
+    rename_dataframe_columns(dataframes)
+
+    # save CSV files to data/final
+    for key, df in dataframes.items():
+        final_dir = config.final_path / f"{key}.csv"
+        df.to_csv(final_dir, index=False)
+
+    # join our dataframes per our main query, and drop any unnecessary columns
+    final_dataframe = join_dataframes(dataframes)
+    final_dir = config.final_path / "canvas_full.csv"
+    final_dataframe.to_csv(final_dir, index=False)
+    logger.info(f"Output full Canvas CSV to {final_dir}")
+
+    # filter the final dataframe per our main query
+    filter_dataframes(final_dataframe)
+    final_dir = config.final_path / "canvas_full_filtered.csv"
+    final_dataframe.to_csv(final_dir, index=False)
+    logger.info(f"Output full-filtered Canvas CSV to {final_dir}")
+
+    # drop unnecessary columns
+    drop_and_rename_columns(final_dataframe)
+    final_dir = config.final_path / "canvas_final.csv"
+    final_dataframe.to_csv(final_dir, index=False)
+    logger.info(f"Output final Canvas CSV to {final_dir}")
+
+    return final_dataframe

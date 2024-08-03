@@ -11,7 +11,7 @@ from typing import List, Dict
 from urllib.parse import ParseResult, urlparse
 import pandas as pd
 
-import canvas_data_integration.utils as utils
+import utils
 import aiofiles
 import json
 
@@ -26,6 +26,8 @@ logger = logging.getLogger(__name__)
 
 CONFIG_DIR = os.path.dirname(__file__) + '/../config.yml'
 config = yaml.safe_load(open(CONFIG_DIR))
+
+
 # TODO: local environment variables, remove when deployed
 load_dotenv(os.path.dirname(__file__) + '/../resources/.env')
 base_url: str = os.environ.get("DAP_API_URL")

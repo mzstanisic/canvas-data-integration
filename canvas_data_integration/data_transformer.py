@@ -2,9 +2,7 @@
 processing.py
 
 Imports the JSON Line files into pandas dataframes, flattens them,
-and extracts only the selected columns for each table in order to join them
-and create a final dataframe. Finally, spits out a final CSV to the data folder
-for manual operations and review.
+and extracts only the selected columns for each table for further operations.
 """
 
 import asyncio
@@ -52,7 +50,7 @@ def process_file(json_file: Path, dataframes: dict, columns_to_keep: list) -> No
         logger.error(f"Failed to process file {json_file}. Error: {e}")
 
 
-async def load_and_process_json_files(directory: str, columns_mapping: Dict[str, List[str]]) -> dict:
+def load_and_process_json_files(directory: str, columns_mapping: Dict[str, List[str]]) -> dict:
     """
     Reads all JSON files in the specified directory into DataFrames, flattens them,
     and selects only specified columns.
@@ -68,18 +66,19 @@ async def load_and_process_json_files(directory: str, columns_mapping: Dict[str,
     json_files = [file for file in path.glob("*.json")]
 
     dataframes = {}
-    tasks = []
+    # tasks = []
 
     for json_file in json_files:
         stem = json_file.stem
         columns_to_keep = columns_mapping.get(stem, [])
-        tasks.append(asyncio.create_task(process_file(json_file, dataframes, columns_to_keep)))
+        process_file(json_file, dataframes, columns_to_keep)
+        # tasks.append(asyncio.create_task(process_file(json_file, dataframes, columns_to_keep)))
 
-    await asyncio.gather(*tasks)
+    # await asyncio.gather(*tasks)
     return dataframes
 
 
-async def main() -> dict:
+def main() -> dict:
     """
     Main function to load and process JSON files into DataFrames.
 
@@ -97,21 +96,16 @@ async def main() -> dict:
         'course_sections': ['key.id', 'value.name', 'value.course_id', 'value.workflow_state', 'meta.ts'],
         'enrollments': ['key.id', 'value.last_activity_at', 'value.total_activity_time', 'value.course_section_id', 'value.course_id', 'value.role_id', 'value.user_id', 'value.sis_pseudonym_id', 'value.workflow_state', 'value.type', 'meta.ts'],
         'users': ['key.id', 'value.workflow_state', 'value.name', 'meta.ts'],
-        'pseudonyms': ['key.id', 'value.sis_user_id', 'value.unique_id', 'value.workflow_state', 'meta.ts'],
+        'pseudonyms': ['key.id', 'value.user_id', 'value.sis_user_id', 'value.unique_id', 'value.workflow_state', 'meta.ts'],
         'scores': ['key.id', 'value.current_score', 'value.enrollment_id', 'value.workflow_state', 'value.course_score', 'meta.ts']
     }
 
     # load and process JSON files into DataFrames
-    dataframes = await load_and_process_json_files(directory, columns_mapping)
-    # TODO: repeat for CSV, TSV, and Parquet
-    
-    # save CSV files to data/final
-    for key, df in dataframes.items():
-        final_dir = Path(f_directory) / f"{key}.csv"
-        df.to_csv(final_dir, index=False)
+    dataframes = load_and_process_json_files(directory, columns_mapping)
+    # TODO: repeat option for CSV, TSV, and Parquet
 
     return dataframes
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

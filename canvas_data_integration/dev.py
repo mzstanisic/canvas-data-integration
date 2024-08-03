@@ -19,9 +19,18 @@ from pathlib import Path
 
 import codecs
 
-directory = r"C:\Users\stanisim\Desktop\canvas-data-integration\data\temp\json\users.json"
-df = pd.read_json(directory, lines=True)
-print(df)
+# CONFIG_DIR = os.path.dirname(__file__) + '/../config.yml'
+# print(CONFIG_DIR)
+CONFIG_DIR = Path(__file__).parent / '../config.yml'
+config = yaml.safe_load(open(CONFIG_DIR))
+config['final_path'] = Path(__file__).parent / config.get('final_path')
+print(config['final_path'])
+print(config.get('final_path'))
+print(config)
+
+# directory = r"C:\Users\stanisim\Desktop\canvas-data-integration\data\temp\json\users.json"
+# df = pd.read_json(directory, lines=True)
+# print("true" in (True, "true"))# or "true")
 quit()
 
 # def try_encodings(file_path):
