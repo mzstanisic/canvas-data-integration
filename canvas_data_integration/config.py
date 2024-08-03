@@ -3,10 +3,22 @@ config.py
 """
 import yaml
 import logging
+import datetime
 from pathlib import Path
 from dap.dap_types import Format
 
 logger = logging.getLogger(__name__)
+
+# config the logger
+logging.basicConfig(
+    filename=Path(__file__).parent
+    / "../logs/"
+    / datetime.datetime.now().strftime("%Y-%m-%d.log"),
+    encoding="utf-8",
+    level=logging.DEBUG,
+    format="%(asctime)s :: %(levelname)-8s :: %(module)s.%(funcName)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 
 class Config:
     def __init__(self, final_path: Path, temp_path: Path, format: str, canvas_format: Format):

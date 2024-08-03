@@ -16,6 +16,7 @@ import data_transformer
 import data_integrator
 import database_uploader
 
+
 async def run_pipeline():
     # get the processed user config
     user_config = config.get_config()

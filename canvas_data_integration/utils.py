@@ -15,16 +15,16 @@ logger = logging.getLogger(__name__)
 # logger.propagate = False #TODO: check if messages from here still show up in logs
 
 #TODO: move to main script
-# config the logger
-logging.basicConfig(
-    filename=Path(__file__).parent
-    / "../logs/"
-    / datetime.datetime.now().strftime("%Y-%m-%d.log"),
-    encoding="utf-8",
-    level=logging.DEBUG,
-    format="%(asctime)s :: %(levelname)-8s :: %(module)s.%(funcName)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+# # config the logger
+# logging.basicConfig(
+#     filename=Path(__file__).parent
+#     / "../logs/"
+#     / datetime.datetime.now().strftime("%Y-%m-%d.log"),
+#     encoding="utf-8",
+#     level=logging.DEBUG,
+#     format="%(asctime)s :: %(levelname)-8s :: %(module)s.%(funcName)s: %(message)s",
+#     datefmt="%Y-%m-%d %H:%M:%S",
+# )
 
 # def get_format(config_format: dict = {"output_format":"csv"}) -> Format:
 #     """
