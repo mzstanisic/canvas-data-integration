@@ -27,7 +27,8 @@ class Config:
                  final_path: Path,
                  temp_path: Path,
                  str_format: str,
-                 canvas_format: str,
+                 canvas_format: Format,
+                 canvas_tables: dict,
                  db_host: str,
                  db_port: int,
                  db_service: str,
@@ -56,6 +57,7 @@ class Config:
         self.temp_path = temp_path
         self.str_format = str_format
         self.canvas_format = canvas_format
+        self.canvas_tables = canvas_tables
         self.db_host = db_host
         self.db_port = db_port
         self.db_service = db_service
@@ -73,6 +75,7 @@ class Config:
                 f"temp_path={self.temp_path}, "
                 f"format='{self.str_format}', "
                 f"canvas_format='{self.canvas_format}', "
+                f"canvas_tables='{self.canvas_tables}', "
                 f"db_host='{self.db_host}', "
                 f"db_port={self.db_port}, "
                 f"db_service='{self.db_service}', "
@@ -119,19 +122,31 @@ def validate_config(config_path: Path) -> dict:
                                 + "Add a config.yml file to the base directory.")
     else:
         config = yaml.safe_load(open(config_path))
+        
         if config.get("db_host") == None or config.get("db_port") == None or config.get("db_service") == None: 
             logger.error(f"Some or all config.yml database connection fields are empty. Update {config_path} to include all database connection fields.")
             raise Exception(f"Some or all config.yml database connection fields are empty. Update {config_path} to include all database connection fields.")
-        elif config.get("temp_path") == None or config.get("final_path") == None or config.get("canvas_format") == None:
+        
+        if config.get("temp_path") == None or config.get("final_path") == None or config.get("canvas_format") == None:
             logger.warning(f"Some or all optional configuration fields in config.yml are empty. Using defaults.")
             config["temp_path"] = "../data/temp"
             config["final_path"] = "../data/final"
             config["canvas_format"] = Format.JSONL
-            return config
-        else:
-            config["canvas_format"] = get_format(config.get("canvas_format"))
-            logger.info("Retrieved configuration values from config.yml file.")
-            return config
+            
+        if config.get("canvas_tables") == None:
+            logger.warning(f"Canvas table configuration dictionary in config.yml is empty. Using defaults.")
+            config["canvas_tables"] = {
+                'course_sections': ['key.id', 'value.name', 'value.course_id', 'value.workflow_state', 'meta.ts'],
+                'courses': ['key.id', 'value.sis_source_id', 'value.name', 'value.enrollment_term_id', 'value.workflow_state', 'value.is_public', 'meta.ts'],
+                'enrollment_terms': ['key.id', 'value.sis_source_id', 'value.workflow_state', 'meta.ts'],
+                'enrollments': ['key.id', 'value.last_activity_at', 'value.total_activity_time', 'value.course_section_id', 'value.course_id', 'value.role_id', 'value.user_id', 'value.sis_pseudonym_id', 'value.workflow_state', 'value.type', 'meta.ts'],
+                'pseudonyms': ['key.id', 'value.user_id', 'value.sis_user_id', 'value.unique_id', 'value.workflow_state', 'meta.ts'],
+                'scores': ['key.id', 'value.current_score', 'value.enrollment_id', 'value.workflow_state', 'value.course_score', 'meta.ts'],
+                'users': ['key.id', 'value.workflow_state', 'value.name', 'meta.ts'],
+                }
+
+        config["canvas_format"] = get_format(config.get("canvas_format"))
+        return config
 
 
 def validate_env(env_path: Path) -> dict:
@@ -154,7 +169,7 @@ def validate_env(env_path: Path) -> dict:
 
     # if no system environment variables, check file
     if None in env.values():
-        logger.warning("No system environment variables found. Trying .env file.")
+        logger.warning("No system environment variables found. Trying .env file...")
 
         if not env_path.is_file():
             logger.error(f"The path {env_path} is not a valid file. Cannot proceed without DAP and Oracle authentication data. "
@@ -199,6 +214,7 @@ def get_config() -> Config:
         temp_path = Path(__file__).parent / config.get('temp_path'),
         str_format = config.get('canvas_format').name,          # string representation of format
         canvas_format = config.get('canvas_format'),            # actual format
+        canvas_tables = config.get("canvas_tables"),
         db_host = config.get('db_host'),
         db_port = config.get('db_port'),
         db_service = config.get('db_service'),
@@ -210,3 +226,8 @@ def get_config() -> Config:
     )
 
     return config
+
+
+if __name__ == "__main__":
+    user_config = get_config()
+    print(user_config.__repr__)

@@ -11,7 +11,7 @@ The running script.
 
 import asyncio
 import config
-# import canvas_extractor #TODO: refactor and bring in
+import canvas_extractor
 import data_transformer
 import data_integrator
 import database_uploader
@@ -22,7 +22,7 @@ async def run_pipeline():
     user_config = config.get_config()
 
     # extracts data files from Canvas in the specified format
-    # await canvas_extractor.main() #TODO: format, file paths, etc.
+    await canvas_extractor.main(user_config) #TODO: format, file paths, etc.
     
     # gets data into dataframes from the Canvas data files,
     # then flattens and drops extraneous columns
@@ -31,7 +31,7 @@ async def run_pipeline():
     # joins and filters dataframes into a main dataframe based on project requirements
     final_dataframe = data_integrator.main(dataframes, user_config) #TODO: no await, this is synchronous since it only uses pandas
     
-    print(final_dataframe.head()) #TODO: debugging, see a result
+    # print(final_dataframe.head()) #TODO: debugging, see a result
 
     # final dataframe is uploaded to database
     # await database_uploader.main(final_dataframe) # accepts the final dataframe
