@@ -123,9 +123,9 @@ def validate_config(config_path: Path) -> dict:
     else:
         config = yaml.safe_load(open(config_path))
         
-        if config.get("db_host") == None or config.get("db_port") == None or config.get("db_service") == None: 
-            logger.error(f"Some or all config.yml database connection fields are empty. Update {config_path} to include all database connection fields.")
-            raise Exception(f"Some or all config.yml database connection fields are empty. Update {config_path} to include all database connection fields.")
+        # if config.get("db_host") == None or config.get("db_port") == None or config.get("db_service") == None: 
+        #     logger.error(f"Some or all config.yml database connection fields are empty. Update {config_path} to include all database connection fields.")
+        #     raise Exception(f"Some or all config.yml database connection fields are empty. Update {config_path} to include all database connection fields.")
         
         if config.get("temp_path") == None or config.get("final_path") == None or config.get("canvas_format") == None:
             logger.warning(f"Some or all optional configuration fields in config.yml are empty. Using defaults.")
@@ -157,6 +157,9 @@ def validate_env(env_path: Path) -> dict:
         'dap_api_url':None,
         'dap_client_id':None,
         'dap_client_secret':None,
+        'db_host':None,
+        'db_port':None,
+        'db_service':None,
         'oracle_username':None,
         'oracle_password':None
     }
@@ -164,6 +167,9 @@ def validate_env(env_path: Path) -> dict:
     env["dap_api_url"] = os.environ.get("DAP_API_URL")
     env["dap_client_id"] = os.environ.get("DAP_CLIENT_ID")
     env["dap_client_secret"] = os.environ.get("DAP_CLIENT_SECRET")
+    env["db_host"] = os.environ.get("DB_HOST")
+    env["db_port"] = os.environ.get("DB_PORT")
+    env["db_service"] = os.environ.get("DB_SERVICE")
     env["oracle_username"] = os.environ.get("ORACLE_USERNAME")
     env["oracle_password"] = os.environ.get("ORACLE_PASSWORD")
 
@@ -181,6 +187,9 @@ def validate_env(env_path: Path) -> dict:
             env["dap_api_url"] = os.environ.get("DAP_API_URL")
             env["dap_client_id"] = os.environ.get("DAP_CLIENT_ID")
             env["dap_client_secret"] = os.environ.get("DAP_CLIENT_SECRET")
+            env["db_host"] = os.environ.get("DB_HOST")
+            env["db_port"] = os.environ.get("DB_PORT")
+            env["db_service"] = os.environ.get("DB_SERVICE")
             env["oracle_username"] = os.environ.get("ORACLE_USERNAME")
             env["oracle_password"] = os.environ.get("ORACLE_PASSWORD")
 
@@ -215,9 +224,9 @@ def get_config() -> Config:
         str_format = config.get('canvas_format').name,          # string representation of format
         canvas_format = config.get('canvas_format'),            # actual format
         canvas_tables = config.get("canvas_tables"),
-        db_host = config.get('db_host'),
-        db_port = config.get('db_port'),
-        db_service = config.get('db_service'),
+        db_host = env.get('db_host'),
+        db_port = env.get('db_port'),
+        db_service = env.get('db_service'),
         dap_api_url = env.get('dap_api_url'),
         dap_client_id = env.get('dap_client_id'),
         dap_client_secret = env.get('dap_client_secret'),
