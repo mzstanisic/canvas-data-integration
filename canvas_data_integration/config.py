@@ -1,10 +1,12 @@
 """
 config.py
 """
+import os
 import yaml
 import logging
 import datetime
 from pathlib import Path
+from dotenv import load_dotenv
 from dap.dap_types import Format
 
 logger = logging.getLogger(__name__)
@@ -21,19 +23,47 @@ logging.basicConfig(
 )
 
 class Config:
-    def __init__(self, final_path: Path, temp_path: Path, format: str, canvas_format: Format):
+    def __init__(self, 
+                 final_path: Path,
+                 temp_path: Path,
+                 str_format: str,
+                 canvas_format: str,
+                 db_host: str,
+                 db_port: int,
+                 db_service: str,
+                 dap_api_url: str,
+                 dap_client_id: str,
+                 dap_client_secret: str,
+                 oracle_username: str,
+                 oracle_password: str):
         """
         Initializes the Config object with the given properties.
 
-        :param1 final_path: The path where final output files are stored.
-        :param2 temp_path: The path where temporary files are stored.
-        :param3 format: The format for the Canvas data files (string representation).
-        :param4 canvas_format: The format for the Canvas data files.
+        :param final_path: The path where final output files are stored.
+        :param temp_path: The path where temporary files are stored.
+        :param str_format: The format for the Canvas data files (string representation).
+        :param canvas_format: The format for the Canvas data files.
+        :param db_host: The host address of the database.
+        :param db_port: The port number of the database.
+        :param db_service: The service name of the database.
+        :param dap_api_url: The API URL for DAP.
+        :param dap_client_id: The client ID for DAP.
+        :param dap_client_secret: The client secret for DAP.
+        :param oracle_username: The username for Oracle database.
+        :param oracle_password: The password for Oracle database.
         """
         self.final_path = final_path
         self.temp_path = temp_path
-        self.format = format
+        self.str_format = str_format
         self.canvas_format = canvas_format
+        self.db_host = db_host
+        self.db_port = db_port
+        self.db_service = db_service
+        self.dap_api_url = dap_api_url
+        self.dap_client_id = dap_client_id
+        self.dap_client_secret = dap_client_secret
+        self.oracle_username = oracle_username
+        self.oracle_password = oracle_password
 
     def __repr__(self):
         """
@@ -41,11 +71,18 @@ class Config:
         """
         return (f"Config(final_path={self.final_path}, "
                 f"temp_path={self.temp_path}, "
-                f"format='{self.format}', "
-                f"canvas_format='{self.canvas_format}')")
+                f"format='{self.str_format}', "
+                f"canvas_format='{self.canvas_format}', "
+                f"db_host='{self.db_host}', "
+                f"db_port={self.db_port}, "
+                f"db_service='{self.db_service}', "
+                f"dap_api_url='{self.dap_api_url}', "
+                f"dap_client_id='{self.dap_client_id}', "
+                f"dap_client_secret='{self.dap_client_secret}', "
+                f"oracle_username='{self.oracle_username}')")
 
 
-def get_format(config_format: dict = {"canvas_format":"json"}) -> Format:
+def get_format(config_format: str = "JSONL") -> Format:
     """
     Accepts a selected output format for files from config.yml,
     and returns the corresponding DAP Canvas format type.
@@ -54,15 +91,7 @@ def get_format(config_format: dict = {"canvas_format":"json"}) -> Format:
     :returns: Corresponding DAP format type.
     """
 
-    if not isinstance(config_format, dict):
-        logger.warning(f"Type mismatch for parameter `config_format`, expected dict: {type(config_format)}")
-        logger.info("Defaulting to JSON.")
-        config_format={"canvas_format":"json"}
-    if not config_format.get("canvas_format"):
-        logger.warning(f"Dictionary `config_format` does not contain an `canvas_format` key: {config_format}")
-        logger.info("Defaulting to JSON.")
-
-    config_format = config_format.get("canvas_format") or "json"
+    config_format = config_format or "JSONL"
     config_format = config_format.lower().strip()
 
     match config_format:
@@ -76,9 +105,81 @@ def get_format(config_format: dict = {"canvas_format":"json"}) -> Format:
             return Format.Parquet
         case _:
             logger.warning(f"Specified format does not exist, expected one of (CSV, JSONL, TSV, Parquet): {config_format}")
-            logger.info("Defaulting to JSON.")
+            logger.info("Defaulting to JSONL.")
             return Format.JSONL
         
+
+def validate_config(config_path: Path) -> dict:
+    """
+    """
+    if not config_path.is_file():
+        logger.error(f"The path {config_path} is not a valid file. Cannot proceed without database connection data. "
+                         + "Add a config.yml file to the base directory.")
+        raise FileNotFoundError(f"The path {config_path} is not a valid file. Cannot proceed without database connection data. "
+                                + "Add a config.yml file to the base directory.")
+    else:
+        config = yaml.safe_load(open(config_path))
+        if config.get("db_host") == None or config.get("db_port") == None or config.get("db_service") == None: 
+            logger.error(f"Some or all config.yml database connection fields are empty. Update {config_path} to include all database connection fields.")
+            raise Exception(f"Some or all config.yml database connection fields are empty. Update {config_path} to include all database connection fields.")
+        elif config.get("temp_path") == None or config.get("final_path") == None or config.get("canvas_format") == None:
+            logger.warning(f"Some or all optional configuration fields in config.yml are empty. Using defaults.")
+            config["temp_path"] = "../data/temp"
+            config["final_path"] = "../data/final"
+            config["canvas_format"] = Format.JSONL
+            return config
+        else:
+            config["canvas_format"] = get_format(config.get("canvas_format"))
+            logger.info("Retrieved configuration values from config.yml file.")
+            return config
+
+
+def validate_env(env_path: Path) -> dict:
+    """
+    get environment variables, try system first, then .env file
+    """
+    env = {
+        'dap_api_url':None,
+        'dap_client_id':None,
+        'dap_client_secret':None,
+        'oracle_username':None,
+        'oracle_password':None
+    }
+
+    env["dap_api_url"] = os.environ.get("DAP_API_URL")
+    env["dap_client_id"] = os.environ.get("DAP_CLIENT_ID")
+    env["dap_client_secret"] = os.environ.get("DAP_CLIENT_SECRET")
+    env["oracle_username"] = os.environ.get("ORACLE_USERNAME")
+    env["oracle_password"] = os.environ.get("ORACLE_PASSWORD")
+
+    # if no system environment variables, check file
+    if None in env.values():
+        logger.warning("No system environment variables found. Trying .env file.")
+
+        if not env_path.is_file():
+            logger.error(f"The path {env_path} is not a valid file. Cannot proceed without DAP and Oracle authentication data. "
+                         + "Add system environment variables or a .env file to the resources directory.")
+            raise FileNotFoundError(f"The path {env_path} is not a valid file. Cannot proceed without DAP and Oracle authentication data. "
+                                    + "Add system environment variables or a .env file to the resources directory.")
+        else:
+            load_dotenv(env_path)
+            env["dap_api_url"] = os.environ.get("DAP_API_URL")
+            env["dap_client_id"] = os.environ.get("DAP_CLIENT_ID")
+            env["dap_client_secret"] = os.environ.get("DAP_CLIENT_SECRET")
+            env["oracle_username"] = os.environ.get("ORACLE_USERNAME")
+            env["oracle_password"] = os.environ.get("ORACLE_PASSWORD")
+
+            if None in env.values():
+                logger.error(f"Some or all .env file variables are empty. Update {env_path} to include all necessary environment variables.")
+                raise Exception(f"Some or all .env file variables are empty. Update {env_path} to include all necessary environment variables.")
+            else:
+                logger.info("Retrieved environment variables from .env file.")
+                return env
+    else:
+        logger.info("Obtained environment variables from system.")
+        return env
+            
+
 
 def get_config() -> Config:
     """
@@ -88,33 +189,24 @@ def get_config() -> Config:
     :returns: A Config object that includes a data format and paths.
     """
     config_path = Path(__file__).parent / '../config.yml'
+    config = validate_config(config_path)
 
-    if not config_path.is_file():
-        logger.warning(f"The path {config_path} is not a valid file. Using defaults.")
-        config = {
-            "temp_path":"../data/temp",
-            "final_path":"../data/final",
-            "canvas_format":"json"
-        }
-        canvas_format = Format.JSONL
-    else:
-        config = yaml.safe_load(open(config_path))
-        if config.get("temp_path") and config.get("final_path"):
-            canvas_format = get_format(config)
-        else:
-            logger.warning(f"The config does not have entries for temp and final paths. Using defaults.")
-            config = {
-                "temp_path":"../data/temp",
-                "final_path":"../data/final",
-                "canvas_format":"json"
-            }
-            canvas_format = Format.JSONL
+    env_path = Path(__file__).parent / '../resources/.env'  # Development only. In production, use system environment variables
+    env = validate_env(env_path)
 
     config = Config(
         final_path = Path(__file__).parent / config.get('final_path'),
         temp_path = Path(__file__).parent / config.get('temp_path'),
-        format = config.get('canvas_format'),
-        canvas_format = canvas_format
+        str_format = config.get('canvas_format').name,          # string representation of format
+        canvas_format = config.get('canvas_format'),            # actual format
+        db_host = config.get('db_host'),
+        db_port = config.get('db_port'),
+        db_service = config.get('db_service'),
+        dap_api_url = env.get('dap_api_url'),
+        dap_client_id = env.get('dap_client_id'),
+        dap_client_secret = env.get('dap_client_secret'),
+        oracle_username = env.get('oracle_username'),
+        oracle_password = env.get('oracle_password')
     )
 
     return config

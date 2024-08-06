@@ -325,7 +325,7 @@ def main(dataframes: dict, config: Config) -> pd.DataFrame:
         final_dir = config.final_path / f"{key}.csv"
         df.to_csv(final_dir, index=False)
 
-    # join our dataframes per our main query, and drop any unnecessary columns
+    # join our dataframes per our main query
     final_dataframe = join_dataframes(dataframes)
     final_dir = config.final_path / "canvas_full.csv"
     final_dataframe.to_csv(final_dir, index=False)
@@ -337,7 +337,7 @@ def main(dataframes: dict, config: Config) -> pd.DataFrame:
     final_dataframe.to_csv(final_dir, index=False)
     logger.info(f"Output full-filtered Canvas CSV to {final_dir}")
 
-    # drop unnecessary columns
+    # drop unnecessary columns and rename the rest for final export
     drop_and_rename_columns(final_dataframe)
     final_dir = config.final_path / "canvas_final.csv"
     final_dataframe.to_csv(final_dir, index=False)
