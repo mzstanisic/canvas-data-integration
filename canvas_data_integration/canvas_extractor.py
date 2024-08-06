@@ -1,5 +1,6 @@
 """
 """
+import utils
 import config
 import shutil
 import asyncio
@@ -12,11 +13,13 @@ from dap.dap_types import Format, Mode, SnapshotQuery, IncrementalQuery
 
 logger = logging.getLogger(__name__)
 
+last_seen = datetime.now(timezone.utc) - timedelta(days=1) #TODO: establish in config as well?
 
 async def get_canvas_data(table: str,
-                          output_directory: str,
+                          output_directory: Path,
                           last_seen: datetime,
                           format: Format = Format.JSONL,
+                          mode: Mode = None,
                           query_type: str = "incremental") -> None:
     """
     Retrieves data files from Canvas for the specified Canvas table.
@@ -26,19 +29,21 @@ async def get_canvas_data(table: str,
     :param format: The desired format for the data files: `CSV`, `JSONL`, `TSV`, or `Parquet`
     :param query_type: The desired query type: `incremental` or `snapshot`
     """
-    mode = Mode.expanded # lays out nested fixed-cardinality fields into several columns
+    # mode = Mode.expanded # lays out nested fixed-cardinality fields into several columns
 
-    # adjust output directory and mode based on the format
-    match format:
-        case Format.CSV:
-            output_directory = Path(output_directory) / "csv"
-        case Format.JSONL:
-            output_directory = Path(output_directory) / "json"
-            mode = None # JSON doesn't accept a mode parameter
-        case Format.TSV:
-            output_directory = Path(output_directory) / "tsv"
-        case Format.Parquet:
-            output_directory = Path(output_directory) / "parquet"
+    # # adjust output directory and mode based on the format
+    # match format:
+    #     case Format.CSV:
+    #         output_directory = Path(output_directory) / "csv"
+    #     case Format.JSONL:
+    #         output_directory = Path(output_directory) / "json"
+    #         mode = None # JSON doesn't accept a mode parameter
+    #     case Format.TSV:
+    #         output_directory = Path(output_directory) / "tsv"
+    #     case Format.Parquet:
+    #         output_directory = Path(output_directory) / "parquet"
+
+    output_directory = output_directory / format.name.lower()
 
     # ensure output directory exists
     output_directory.mkdir(parents=True, exist_ok=True)
@@ -103,7 +108,13 @@ async def update_all(table_id: str, work_queue: asyncio.Queue, config: dict) -> 
 
         try:
             logger.info(f"Task [{table_id}] beginning Canvas data pull for table: {table}.")
-            await get_canvas_data(table, config.temp_path, last_seen=, config.canvas_format, query_type=) #TODO: fix after fixing function first
+            await get_canvas_data(table,
+                                  config.temp_path,
+                                  last_seen,
+                                  config.canvas_format,
+                                  config.canvas_mode,
+                                  config.canvas_tables.get(table).get("query_type")
+                                  )
             logger.info(f"Task [{table_id}] completed Canvas data pull for table: {table}.")
         except Exception as e:
             logger.error(f"Task [{table_id}] failed for table: {table}. Error: {e}")
@@ -123,12 +134,13 @@ async def main(config: dict) -> None:
     :return: None
     """
 
-    # utils.empty_temp(config.temp_path) #TODO: might not be necessary, if files get overwritten properly
-    cfg_query_type = "incremental" # TODO: establish this in the config
-    last_seen = datetime.now(timezone.utc) - timedelta(days=1) #TODO: establish in config as well?
+    # empty temp folders
+    utils.empty_temp(config.temp_path)
 
+    # create DAP credentials
     Credentials.create(client_id=config.dap_client_id, client_secret=config.dap_client_secret)
 
+    # intialize work queue
     work_queue = asyncio.Queue()
 
     # get tables defined in the config
@@ -153,6 +165,21 @@ async def main(config: dict) -> None:
 if __name__ == "__main__":
     user_config = config.get_config()
     asyncio.run(main(user_config))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

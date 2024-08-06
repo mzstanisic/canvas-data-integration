@@ -7,7 +7,7 @@ import logging
 import datetime
 from pathlib import Path
 from dotenv import load_dotenv
-from dap.dap_types import Format
+from dap.dap_types import Format, Mode
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +66,9 @@ class Config:
         self.dap_client_secret = dap_client_secret
         self.oracle_username = oracle_username
         self.oracle_password = oracle_password
+        
+        # canvas_extractor.py: lays out nested fixed-cardinality fields into several columns. JSON and Parquet don't accept a mode parameter
+        self.canvas_mode = None if canvas_format == Format.JSONL or canvas_format == Format.Parquet else Mode.expanded
 
     def __repr__(self):
         """
@@ -75,6 +78,7 @@ class Config:
                 f"temp_path={self.temp_path}, "
                 f"format='{self.str_format}', "
                 f"canvas_format='{self.canvas_format}', "
+                f"canvas_mode='{self.canvas_mode}', "
                 f"canvas_tables='{self.canvas_tables}', "
                 f"db_host='{self.db_host}', "
                 f"db_port={self.db_port}, "

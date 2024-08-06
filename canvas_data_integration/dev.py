@@ -19,11 +19,11 @@ from pathlib import Path
 
 import codecs
 
-
-print(Format.CSV.name)
-print(Format.TSV.name)
-print(Format.JSONL.name)
-print(Format.Parquet.name)
+if Format.JSONL.name == 'JSONL':
+    print(Format.CSV.name)
+    print(Format.TSV.name)
+    print(Format.JSONL.name)
+    print(Format.Parquet.name)
 
 # CONFIG_DIR = os.path.dirname(__file__) + '/../config.yml'
 # print(CONFIG_DIR)

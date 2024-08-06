@@ -6,53 +6,57 @@ canvas_format: JSONL # CSV, JSONL, Parquet, or TSV
 # tables and columns we want to retrieve
 # https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#datasets
 canvas_tables:
-  course_sections:
-    - key.id
-    - value.name
-    - value.course_id
-    - value.workflow_state
-    - meta.ts
-  courses:
-    - key.id
-    - value.sis_source_id
-    - value.name
-    - value.enrollment_term_id
-    - value.workflow_state
-    - value.is_public
-    - meta.ts
-  enrollment_terms:
-    - key.id
-    - value.sis_source_id
-    - value.workflow_state
-    - meta.ts
-  enrollments:
-    - key.id
-    - value.last_activity_at
-    - value.total_activity_time
-    - value.course_section_id
-    - value.course_id
-    - value.role_id
-    - value.user_id
-    - value.sis_pseudonym_id
-    - value.workflow_state
-    - value.type
-    - meta.ts
-  pseudonyms:
-    - key.id
-    - value.user_id
-    - value.workflow_state
-    - value.unique_id
-    - value.sis_user_id
-    - meta.ts
-  scores:
-    - key.id
-    - value.current_score
-    - value.enrollment_id
-    - value.workflow_state
-    - value.course_score
-    - meta.ts
+  # course_sections:
+  #   - key.id
+  #   - value.name
+  #   - value.course_id
+  #   - value.workflow_state
+  #   - meta.ts
+  # courses:
+  #   - key.id
+  #   - value.sis_source_id
+  #   - value.name
+  #   - value.enrollment_term_id
+  #   - value.workflow_state
+  #   - value.is_public
+  #   - meta.ts
+  # enrollment_terms:
+  #   query_type: snapshot
+  #   fields:
+  #     - key.id
+  #     - value.sis_source_id
+  #     - value.workflow_state
+  #     - meta.ts
+  # enrollments:
+  #   - key.id
+  #   - value.last_activity_at
+  #   - value.total_activity_time
+  #   - value.course_section_id
+  #   - value.course_id
+  #   - value.role_id
+  #   - value.user_id
+  #   - value.sis_pseudonym_id
+  #   - value.workflow_state
+  #   - value.type
+  #   - meta.ts
+  # pseudonyms:
+  #   - key.id
+  #   - value.user_id
+  #   - value.workflow_state
+  #   - value.unique_id
+  #   - value.sis_user_id
+  #   - meta.ts
+  # scores:
+  #   - key.id
+  #   - value.current_score
+  #   - value.enrollment_id
+  #   - value.workflow_state
+  #   - value.course_score
+  #   - meta.ts
   users:
-    - key.id
-    - value.workflow_state
-    - value.name
-    - meta.ts
+    query_type: snapshot
+    fields:
+      - key.id
+      - value.workflow_state
+      - value.name
+      - meta.ts
