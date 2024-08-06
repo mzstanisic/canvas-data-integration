@@ -4,18 +4,15 @@ processing.py
 Imports the JSON Line files into pandas dataframes, flattens them,
 and extracts only the selected columns for each table for further operations.
 """
-
-import asyncio
 import config
 import logging
 import pandas as pd
 from pathlib import Path
-from typing import Dict, List
 
 logger = logging.getLogger(__name__)
 
 
-def flatten_and_select_columns(df: pd.DataFrame, columns: List[str]) -> pd.DataFrame:
+def flatten_and_select_columns(df: pd.DataFrame, columns: list) -> pd.DataFrame:
     """
     Flattens nested JSON data in a DataFrame and selects only specified columns.
 
@@ -60,23 +57,63 @@ def load_and_process_json_files(directory: Path, columns_mapping: dict) -> dict:
     :param2 columns_mapping (dict): A dictionary where keys are JSON file name stems and values are lists of columns to keep.
     :return dataframes: A dictionary where keys are the JSON file name stems and values are filtered DataFrames.
     """
-    # path = Path(directory)
     if not directory.is_dir():
+        logger.error(f"The path {directory} is not a valid directory.")
         raise ValueError(f"The path {directory} is not a valid directory.")
     
     json_files = [file for file in directory.glob("*.json")]
 
     dataframes = {}
-    # tasks = []
 
     for json_file in json_files:
         stem = json_file.stem
-        columns_to_keep = columns_mapping.get(stem, [])
+        columns_to_keep = columns_mapping.get(stem).get("fields")
         process_file(json_file, dataframes, columns_to_keep)
-        # tasks.append(asyncio.create_task(process_file(json_file, dataframes, columns_to_keep)))
 
-    # await asyncio.gather(*tasks)
     return dataframes
+
+
+def rename_dataframe_columns(dataframes: dict) -> dict:
+    """
+    Renames columns in each DataFrame in the dictionary to include the DataFrame's key as a prefix.
+    """
+    dataframes_bu = dataframes.copy()  # backup original dataframes in case of failure
+    try:
+        for key, df in dataframes.items():
+            # Create a dictionary to map old column names to new column names
+            new_column_names = {}
+            
+            for column in df.columns:
+                # Split column name on the dot and create a new name with the DataFrame key as prefix
+                if '.' in column:
+                    prefix, name = column.split('.', 1)
+                    new_name = f"{key}_{name}"
+                    new_column_names[column] = new_name
+                else:
+                    # Handle columns without a dot
+                    new_name = f"{key}_{column}"
+                    new_column_names[column] = new_name
+            
+            # Rename columns
+            dataframes[key] = df.rename(columns=new_column_names)
+
+        logger.info("Dataframe columns renamed successfully.")
+        return dataframes
+    except Exception as e:
+        logger.error(f"Failed to rename dataframe columns. Error: {e}")
+        return dataframes_bu
+
+
+def export_to_final(config, dataframes):
+    """
+    """
+    config.final_path.mkdir(parents=True, exist_ok=True)
+
+    for key, df in dataframes.items():
+        final_dir = config.final_path / f"{key}.csv"
+        df.to_csv(final_dir, index=False)
+        logger.info(f"{final_dir} created successfully.")
+
 
 
 def main(config: dict) -> dict:
@@ -85,31 +122,23 @@ def main(config: dict) -> dict:
 
     :return: A dictionary of DataFrames processed from JSON files.
     """
-    # TODO: replace with proper config directories
-    # directory = r"C:\Users\stanisim\Desktop\canvas-data-integration\data\temp\json"
-    # f_directory = r"C:\Users\stanisim\Desktop\canvas-data-integration\data\final"
-    # merged = r"C:\Users\stanisim\Desktop\canvas-data-integration\data\final\FINAL.csv"
-
-    # define column mappings for each JSON file
-    # columns_mapping = {
-    #     'enrollment_terms': ['key.id', 'value.sis_source_id', 'value.workflow_state', 'meta.ts'],
-    #     'courses': ['key.id', 'value.sis_source_id', 'value.name', 'value.enrollment_term_id', 'value.workflow_state', 'value.is_public', 'meta.ts'],
-    #     'course_sections': ['key.id', 'value.name', 'value.course_id', 'value.workflow_state', 'meta.ts'],
-    #     'enrollments': ['key.id', 'value.last_activity_at', 'value.total_activity_time', 'value.course_section_id', 'value.course_id', 'value.role_id', 'value.user_id', 'value.sis_pseudonym_id', 'value.workflow_state', 'value.type', 'meta.ts'],
-    #     'users': ['key.id', 'value.workflow_state', 'value.name', 'meta.ts'],
-    #     'pseudonyms': ['key.id', 'value.user_id', 'value.sis_user_id', 'value.unique_id', 'value.workflow_state', 'meta.ts'],
-    #     'scores': ['key.id', 'value.current_score', 'value.enrollment_id', 'value.workflow_state', 'value.course_score', 'meta.ts']
-    # }
-
     # load and process JSON files into DataFrames
     if config.str_format.lower() == 'jsonl':
-        dataframes = load_and_process_json_files(config.temp_path, config.canvas_tables)
+        json_path = config.temp_path / config.str_format.lower()
+        dataframes = load_and_process_json_files(json_path, config.canvas_tables)
 
-    # TODO: repeat option for CSV, TSV, and Parquet
+    # TODO: repeat option for CSV, TSV, and Parquet once implemented
+
+    # rename the selected dataframe columns for further processing
+    dataframes = rename_dataframe_columns(dataframes)
+
+    # save CSV files to data/final
+    export_to_final(config, dataframes)
 
     return dataframes
 
 
 if __name__ == "__main__":
     user_config = config.get_config()
-    main(user_config)
+    dataframes = main(user_config)
+    print(f"\n-----data_transformer.py-----\n{dataframes}")

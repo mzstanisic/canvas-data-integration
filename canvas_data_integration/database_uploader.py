@@ -3,58 +3,106 @@ database_uploader.py
 
 """
 import csv
+import config
+import logging
 import oracledb
 import pandas as pd
 from pathlib import Path
 
-table_name = f"{un}.canvas_enrollment_terms"
-connection_string = f"{un}/{pw}@{host}:{port}/{service_name}" #'user/password@host:port/service_name'
+logger = logging.getLogger(__name__)
 
-# CSV file
-FILE_NAME = Path(__file__).parent / '../data/final/enrollment_terms.csv'
 
-# Adjust the number of rows to be inserted in each iteration
-# to meet your memory and performance requirements
-BATCH_SIZE = 10000
+def update_table_with_csv(config: dict, csv_file: Path):
+    """
+    """
+    # connection_string = f"{un}/{pw}@{host}:{port}/{service_name}" #'user/password@host:port/service_name'
 
-connection = oracledb.connect(connection_string)
+    # CSV file
+    # FILE_NAME = Path(__file__).parent / '../data/final/enrollment_terms.csv'
 
-with connection.cursor() as cursor:
+    # Adjust the number of rows to be inserted in each iteration
+    # to meet your memory and performance requirements
+    batch_size = 10000
 
-    # Predefine the memory areas to match the table definition.
-    # This can improve performance by avoiding memory reallocations.
-    # Here, one parameter is passed for each of the columns.
-    # "None" is used for the ID column, since the size of NUMBER isn't
-    # variable.  The "25" matches the maximum expected data size for the
-    # NAME column
+    table_name = f"{config.oracle_username}.canvas_{csv_file.stem}"
 
-    # cursor.setinputsizes(None, 25)
+    connection = oracledb.connect(user=config.oracle_username,
+                                  password=config.oracle_password,
+                                  host=config.db_host,
+                                  port=config.db_port,
+                                  service_name=config.db_service
+                                  )
+    
 
-    with open(FILE_NAME, 'r') as csv_file:
-        csv_reader = csv.reader(csv_file, delimiter=',')
+    with connection.cursor() as cursor:
 
-        # Skip the header row
-        next(csv_reader)
+        # Predefine the memory areas to match the table definition.
+        # This can improve performance by avoiding memory reallocations.
+        # Here, one parameter is passed for each of the columns.
+        # "None" is used for the ID column, since the size of NUMBER isn't
+        # variable.  The "25" matches the maximum expected data size for the
+        # NAME column
 
-        sql = f"""insert into {table_name} (enrollment_terms_id, enrollment_terms_sis_source_id, enrollment_terms_workflow_state, enrollment_terms_ts) values (:1, :2, :3, to_timestamp(:4, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"'))"""
-        data = []
-        for line in csv_reader:
-            data.append((line[0], line[1], line[2], line[3]))
-            if len(data) % BATCH_SIZE == 0:
+        # cursor.setinputsizes(None, 25)
+
+        with open(csv_file, 'r') as csv_file:
+            csv_reader = csv.reader(csv_file, delimiter=',')
+
+            # Skip the header row
+            next(csv_reader)
+
+            sql = f"""insert into {table_name} (
+                      enrollment_terms_id,
+                      enrollment_terms_sis_source_id,
+                      enrollment_terms_workflow_state,
+                      enrollment_terms_ts
+                      ) values (
+                      :1,
+                      :2,
+                      :3,
+                      to_timestamp(:4, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"'))"""
+            
+            data = []
+            for line in csv_reader:
+                data.append((line[0], line[1], line[2], line[3]))
+                if len(data) % batch_size == 0:
+                    cursor.executemany(sql, data)
+                    data = []
+            if data:
                 cursor.executemany(sql, data)
-                data = []
-        if data:
-            cursor.executemany(sql, data)
-        connection.commit()
 
-    # Close the cursor and connection
-    # cursor.close()
+            # In a production system you might choose to fix any invalid rows,
+            # re-insert them, and then commit.  Or you could rollback everything.
+            # In this sample we simply commit and ignore the invalid rows that
+            # couldn't be inserted.
+            connection.commit()
+
+    # TODO: maybe return Oracle message (x records inserted, updated, etc.)
     connection.close()
 
 
-def main() -> None:
+def update_db_tables(config: dict) -> None:
+    """
+    """
+    if not config.final_path.is_dir():
+        logger.error(f"The path {config.final_path} is not a valid directory.")
+        raise ValueError(f"The path {config.final_path} is not a valid directory.")
+    
+    csv_files = [file for file in config.final_path.glob("*.csv")]
+
+    for csv_file in csv_files:
+        update_table_with_csv(config, csv_file)
 
 
+def main(config: dict) -> None:
+    """
+    """
+    update_db_tables(config)
+
+
+if __name__ == "__main__":
+    user_config = config.get_config()
+    main(user_config)
 
 # def insert_dataframe_to_oracle(df, table_name, connection_string):
 #     """

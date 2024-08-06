@@ -22,14 +22,14 @@ async def run_pipeline():
     user_config = config.get_config()
 
     # extracts data files from Canvas in the specified format
-    await canvas_extractor.main(user_config) #TODO: format, file paths, etc.
+    await canvas_extractor.main(user_config)
     
     # gets data into dataframes from the Canvas data files,
-    # then flattens and drops extraneous columns
-    dataframes = data_transformer.main() #TODO: accepts the resulting files, or temp file path? and maybe a format
+    # then flattens, drops extraneous columns, and exports them to data/final
+    dataframes = data_transformer.main(user_config)
 
     # joins and filters dataframes into a main dataframe based on project requirements
-    final_dataframe = data_integrator.main(dataframes, user_config) #TODO: no await, this is synchronous since it only uses pandas
+    # final_dataframe = data_integrator.main(dataframes, user_config) #TODO: no await, this is synchronous since it only uses pandas
     
     # print(final_dataframe.head()) #TODO: debugging, see a result
 

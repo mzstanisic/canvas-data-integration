@@ -11,36 +11,36 @@ from config import Config
 
 logger = logging.getLogger(__name__)
 
-
-def rename_dataframe_columns(dataframes: dict) -> dict:
-    """
-    Renames columns in each DataFrame in the dictionary to include the DataFrame's key as a prefix.
-    """
-    dataframes_bu = dataframes.copy()  # backup original dataframes in case of failure
-    try:
-        for key, df in dataframes.items():
-            # Create a dictionary to map old column names to new column names
-            new_column_names = {}
+# TODO: remove, moved to data_transformer.py
+# def rename_dataframe_columns(dataframes: dict) -> dict:
+#     """
+#     Renames columns in each DataFrame in the dictionary to include the DataFrame's key as a prefix.
+#     """
+#     dataframes_bu = dataframes.copy()  # backup original dataframes in case of failure
+#     try:
+#         for key, df in dataframes.items():
+#             # Create a dictionary to map old column names to new column names
+#             new_column_names = {}
             
-            for column in df.columns:
-                # Split column name on the dot and create a new name with the DataFrame key as prefix
-                if '.' in column:
-                    prefix, name = column.split('.', 1)
-                    new_name = f"{key}_{name}"
-                    new_column_names[column] = new_name
-                else:
-                    # Handle columns without a dot
-                    new_name = f"{key}_{column}"
-                    new_column_names[column] = new_name
+#             for column in df.columns:
+#                 # Split column name on the dot and create a new name with the DataFrame key as prefix
+#                 if '.' in column:
+#                     prefix, name = column.split('.', 1)
+#                     new_name = f"{key}_{name}"
+#                     new_column_names[column] = new_name
+#                 else:
+#                     # Handle columns without a dot
+#                     new_name = f"{key}_{column}"
+#                     new_column_names[column] = new_name
             
-            # Rename columns
-            dataframes[key] = df.rename(columns=new_column_names)
+#             # Rename columns
+#             dataframes[key] = df.rename(columns=new_column_names)
 
-        logger.info("Dataframe columns renamed successfully.")
-        return dataframes
-    except Exception as e:
-        logger.error(f"Failed to rename dataframe columns. Error: {e}")
-        return dataframes_bu
+#         logger.info("Dataframe columns renamed successfully.")
+#         return dataframes
+#     except Exception as e:
+#         logger.error(f"Failed to rename dataframe columns. Error: {e}")
+#         return dataframes_bu
     
 
     # dataframes_bu = dataframes
@@ -314,16 +314,16 @@ def drop_and_rename_columns(dataframe: pd.DataFrame) -> None:
 def main(dataframes: dict, config: Config) -> pd.DataFrame:
     """
     """
-    # rename the selectd dataframe columns for further processing
-    dataframes = rename_dataframe_columns(dataframes)
+    # # rename the selected dataframe columns for further processing # TODO: moved to data_transformer.py
+    # dataframes = rename_dataframe_columns(dataframes)
 
     # clean up bools for all tables
     dataframes = clean_bools(dataframes)
 
-    # save CSV files to data/final
-    for key, df in dataframes.items():
-        final_dir = config.final_path / f"{key}.csv"
-        df.to_csv(final_dir, index=False)
+    # # save CSV files to data/final # TODO: moved to data_transformer.py
+    # for key, df in dataframes.items():
+    #     final_dir = config.final_path / f"{key}.csv"
+    #     df.to_csv(final_dir, index=False)
 
     # join our dataframes per our main query
     final_dataframe = join_dataframes(dataframes)

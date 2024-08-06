@@ -19,6 +19,14 @@ from pathlib import Path
 
 import codecs
 
+query = ' '.join((  # Note double parentheses. join() takes an iterable
+    "SELECT foo",
+    "FROM bar",
+    "WHERE baz",
+))
+
+print(query)
+
 if Format.JSONL.name == 'JSONL':
     print(Format.CSV.name)
     print(Format.TSV.name)
