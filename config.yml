@@ -6,81 +6,367 @@ canvas_format: JSONL # CSV, JSONL, Parquet, or TSV
 # tables and columns we want to retrieve
 # https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#datasets
 canvas_tables:
-  # course_sections:
-  #   - key.id
-  #   - value.name
-  #   - value.course_id
-  #   - value.workflow_state
-  #   - meta.ts
-  # courses:
-  #   - key.id
-  #   - value.sis_source_id
-  #   - value.name
-  #   - value.enrollment_term_id
-  #   - value.workflow_state
-  #   - value.is_public
-  #   - meta.ts
+
+# course_sections table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.course_sections
+  course_sections:
+    query_type: incremental
+    fields:
+      - key.id
+      - value.name
+      - value.course_id
+      - value.workflow_state
+      - meta.ts
+    db_query: >-
+      merge into canvas_course_sections target using (
+        select  
+          :1 as course_sections_id,
+          :2 as course_sections_name,
+          :3 as course_sections_course_id,
+          :4 as course_sections_workflow_state,
+          to_timestamp(:5, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"') as course_sections_ts 
+        from dual
+        ) source
+      on (target.course_sections_id = source.course_sections_id)
+      when matched then update
+        set   
+          target.course_sections_name = source.course_sections_name, 
+          target.course_sections_course_id = source.course_sections_course_id, 
+          target.course_sections_workflow_state = source.course_sections_workflow_state,
+          target.course_sections_ts = source.course_sections_ts
+        where target.course_sections_ts < source.course_sections_ts
+      when not matched then insert (
+        course_sections_id,
+        course_sections_name, 
+        course_sections_course_id, 
+        course_sections_workflow_state,
+        course_sections_ts
+        ) 
+      values (
+        source.course_sections_id,
+        source.course_sections_name, 
+        source.course_sections_course_id, 
+        source.course_sections_workflow_state,
+        source.course_sections_ts
+        )
+
+# courses table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.courses
+  courses:
+    query_type: snapshot
+    fields:
+      - key.id
+      - value.sis_source_id
+      - value.name
+      - value.enrollment_term_id
+      - value.workflow_state
+      - value.is_public
+      - meta.ts
+    db_query: >-
+      merge into canvas_courses target using (
+        select  
+          :1 as courses_id,
+          :2 as courses_sis_source_id,
+          :3 as courses_name,
+          :4 as courses_enrollment_term_id,
+          :5 as courses_workflow_state,
+          :6 as courses_is_public,
+          to_timestamp(:7, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"') as courses_ts 
+        from dual
+        ) source
+      on (target.courses_id = source.courses_id)
+      when matched then update
+        set   
+          target.courses_sis_source_id = source.courses_sis_source_id, 
+          target.courses_name = source.courses_name, 
+          target.courses_enrollment_term_id = source.courses_enrollment_term_id,
+          target.courses_workflow_state = source.courses_workflow_state,
+          target.courses_is_public = source.courses_is_public,
+          target.courses_ts = source.courses_ts
+        where target.courses_ts < source.courses_ts
+      when not matched then insert (
+        courses_id,
+        courses_sis_source_id, 
+        courses_name, 
+        courses_enrollment_term_id,
+        courses_workflow_state,
+        courses_is_public,
+        courses_ts
+        ) 
+      values (
+        source.courses_id,
+        source.courses_sis_source_id, 
+        source.courses_name, 
+        source.courses_enrollment_term_id,
+        source.courses_workflow_state,
+        source.courses_is_public,
+        source.courses_ts
+        )
+
+# enrollment_terms table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.enrollment_terms
   enrollment_terms:
     query_type: snapshot
-    db_query: >-
-      insert into canvas_enrollment_terms (
-        enrollment_terms_id,
-        enrollment_terms_sis_source_id,
-        enrollment_terms_workflow_state,
-        enrollment_terms_ts
-      ) values (
-        :1,
-        :2,
-        :3,
-        to_timestamp(:4, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"')
-      )
     fields:
       - key.id
       - value.sis_source_id
       - value.workflow_state
       - meta.ts
-  # enrollments:
-  #   - key.id
-  #   - value.last_activity_at
-  #   - value.total_activity_time
-  #   - value.course_section_id
-  #   - value.course_id
-  #   - value.role_id
-  #   - value.user_id
-  #   - value.sis_pseudonym_id
-  #   - value.workflow_state
-  #   - value.type
-  #   - meta.ts
-  # pseudonyms:
-  #   - key.id
-  #   - value.user_id
-  #   - value.workflow_state
-  #   - value.unique_id
-  #   - value.sis_user_id
-  #   - meta.ts
-  # scores:
-  #   - key.id
-  #   - value.current_score
-  #   - value.enrollment_id
-  #   - value.workflow_state
-  #   - value.course_score
-  #   - meta.ts
+    db_query: >-
+      merge into canvas_enrollment_terms target using (
+        select 
+          :1 as enrollment_terms_id, 
+          :2 as enrollment_terms_sis_source_id, 
+          :3 as enrollment_terms_workflow_state, 
+          to_timestamp(:4, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"') as enrollment_terms_ts 
+        from dual
+        ) source
+      on (target.enrollment_terms_id = source.enrollment_terms_id)
+      when matched then update
+        set 
+          target.enrollment_terms_sis_source_id = source.enrollment_terms_sis_source_id, 
+          target.enrollment_terms_workflow_state = source.enrollment_terms_workflow_state, 
+          target.enrollment_terms_ts = source.enrollment_terms_ts 
+        where target.enrollment_terms_ts < source.enrollment_terms_ts 
+      when not matched then insert (
+        enrollment_terms_id,
+        enrollment_terms_sis_source_id, 
+        enrollment_terms_workflow_state, 
+        enrollment_terms_ts
+        ) 
+      values (
+        source.enrollment_terms_id,
+        source.enrollment_terms_sis_source_id, 
+        source.enrollment_terms_workflow_state, 
+        source.enrollment_terms_ts
+        )
+
+# enrollments table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.enrollments
+  enrollments:
+    query_type: incremental
+    fields:
+      - key.id
+      - value.last_activity_at
+      - value.total_activity_time
+      - value.course_section_id
+      - value.course_id
+      - value.role_id
+      - value.user_id
+      - value.sis_pseudonym_id
+      - value.workflow_state
+      - value.type
+      - meta.ts
+    db_query: >-
+      merge into canvas_enrollments target using (
+        select  
+          :1 as enrollments_id,
+          :2 as enrollments_last_activity_at,
+          :3 as enrollments_total_activity_time,
+          :4 as enrollments_course_section_id,
+          :5 as enrollments_course_id,
+          :6 as enrollments_role_id,
+          :7 as enrollments_user_id,
+          :8 as enrollments_sis_pseudonym_id,
+          :9 as enrollments_workflow_state,
+          :10 as enrollments_type,
+          to_timestamp(:11, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"') as enrollments_ts 
+        from dual
+        ) source
+      on (target.enrollments_id = source.enrollments_id)
+      when matched then update
+        set   
+          target.enrollments_last_activity_at = source.enrollments_last_activity_at, 
+          target.enrollments_total_activity_time = source.enrollments_total_activity_time, 
+          target.enrollments_course_section_id = source.enrollments_course_section_id,
+          target.enrollments_course_id = source.enrollments_course_id,
+          target.enrollments_role_id = source.enrollments_role_id,
+          target.enrollments_user_id = source.enrollments_user_id,
+          target.enrollments_sis_pseudonym_id = source.enrollments_sis_pseudonym_id,
+          target.enrollments_workflow_state = source.enrollments_workflow_state,
+          target.enrollments_type = source.enrollments_type,
+          target.enrollments_ts = source.enrollments_ts
+        where target.enrollments_ts < source.enrollments_ts
+      when not matched then insert (
+        enrollments_id,
+        enrollments_last_activity_at, 
+        enrollments_total_activity_time, 
+        enrollments_course_section_id,
+        enrollments_course_id,
+        enrollments_role_id,
+        enrollments_user_id,
+        enrollments_sis_pseudonym_id,
+        enrollments_workflow_state,
+        enrollments_type,
+        enrollments_ts
+        ) 
+      values (
+        source.enrollments_id,
+        source.enrollments_last_activity_at, 
+        source.enrollments_total_activity_time, 
+        source.enrollments_course_section_id,
+        source.enrollments_course_id,
+        source.enrollments_role_id,
+        source.enrollments_user_id,
+        source.enrollments_sis_pseudonym_id,
+        source.enrollments_workflow_state,
+        source.enrollments_type,
+        source.enrollments_ts
+        )
+
+# pseudonyms table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.pseudonyms
+  pseudonyms:
+    query_type: snapshot
+    fields:
+      - key.id
+      - value.user_id
+      - value.workflow_state
+      - value.unique_id
+      - value.sis_user_id
+      - meta.ts
+    db_query: >-
+      merge into canvas_pseudonyms target using (
+        select  
+          :1 as pseudonyms_id,
+          :2 as pseudonyms_user_id,
+          :3 as pseudonyms_workflow_state,
+          :4 as pseudonyms_unique_id,
+          :5 as pseudonyms_sis_user_id,
+          to_timestamp(:6, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"') as pseudonyms_ts 
+        from dual
+        ) source
+      on (target.pseudonyms_id = source.pseudonyms_id)
+      when matched then update
+        set   
+          target.pseudonyms_user_id = source.pseudonyms_user_id, 
+          target.pseudonyms_workflow_state = source.pseudonyms_workflow_state, 
+          target.pseudonyms_unique_id = source.pseudonyms_unique_id,
+          target.pseudonyms_sis_user_id = source.pseudonyms_sis_user_id,
+          target.pseudonyms_ts = source.pseudonyms_ts
+        where target.pseudonyms_ts < source.pseudonyms_ts
+      when not matched then insert (
+        pseudonyms_id,
+        pseudonyms_user_id, 
+        pseudonyms_workflow_state, 
+        pseudonyms_unique_id,
+        pseudonyms_sis_user_id,
+        pseudonyms_ts
+        ) 
+      values (
+        source.pseudonyms_id,
+        source.pseudonyms_user_id, 
+        source.pseudonyms_workflow_state, 
+        source.pseudonyms_unique_id,
+        source.pseudonyms_sis_user_id,
+        source.pseudonyms_ts
+        )
+
+# scores table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.scores
+  scores:
+    query_type: incremental
+    fields:
+      - key.id
+      - value.current_score
+      - value.enrollment_id
+      - value.workflow_state
+      - value.course_score
+      - meta.ts
+    db_query: >-
+      merge into canvas_scores target using (
+        select  
+          :1 as scores_id,
+          :2 as scores_current_score,
+          :3 as scores_enrollment_id,
+          :4 as scores_workflow_state,
+          :5 as scores_course_score,
+          to_timestamp(:6, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"') as scores_ts 
+        from dual
+        ) source
+      on (target.scores_id = source.scores_id)
+      when matched then update
+        set   
+          target.scores_current_score = source.scores_current_score, 
+          target.scores_enrollment_id = source.scores_enrollment_id, 
+          target.scores_workflow_state = source.scores_workflow_state,
+          target.scores_course_score = source.scores_course_score,
+          target.scores_ts = source.scores_ts
+        where target.scores_ts < source.scores_ts
+      when not matched then insert (
+        scores_id,
+        scores_current_score, 
+        scores_enrollment_id, 
+        scores_workflow_state,
+        scores_course_score,
+        scores_ts
+        ) 
+      values (
+        source.scores_id,
+        source.scores_current_score, 
+        source.scores_enrollment_id, 
+        source.scores_workflow_state,
+        source.scores_course_score,
+        source.scores_ts
+        )
+
+# users table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.users
   users:
     query_type: snapshot
-    db_query: >-
-      insert into canvas_users (
-        users_id,
-        users_workflow_state,
-        users_name,
-        users_ts
-      ) values (
-        :1,
-        :2,
-        :3,
-        to_timestamp(:4, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"')
-      )
     fields:
       - key.id
       - value.workflow_state
       - value.name
       - meta.ts
+    db_query: >-
+      merge into canvas_users target using (
+        select 
+          :1 as users_id, 
+          :2 as users_workflow_state, 
+          :3 as users_name, 
+          to_timestamp(:4, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"') as users_ts 
+        from dual
+        ) source
+      on (target.users_id = source.users_id)
+      when matched then update
+        set
+          target.users_workflow_state = source.users_workflow_state, 
+          target.users_name = source.users_name, 
+          target.users_ts = source.users_ts 
+        where target.users_ts < source.users_ts 
+      when not matched then insert (
+        users_id,
+        users_workflow_state, 
+        users_name, 
+        users_ts
+        ) 
+      values (
+        source.users_id,
+        source.users_workflow_state, 
+        source.users_name, 
+        source.users_ts
+        )
+    
+
+
+
+
+# old queries
+    # db_query: >-
+    #   insert into canvas_users (
+    #     users_id,
+    #     users_workflow_state,
+    #     users_name,
+    #     users_ts
+    #   ) values (
+    #     :1,
+    #     :2,
+    #     :3,
+    #     to_timestamp(:4, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"')
+    #   )
+    # db_query: >-
+    #   insert into canvas_enrollment_terms (
+    #     enrollment_terms_id,
+    #     enrollment_terms_sis_source_id,
+    #     enrollment_terms_workflow_state,
+    #     enrollment_terms_ts
+    #   ) values (
+    #     :1,
+    #     :2,
+    #     :3,
+    #     to_timestamp(:4, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"')
+    #   )

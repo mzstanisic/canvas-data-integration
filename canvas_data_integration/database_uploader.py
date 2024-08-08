@@ -4,10 +4,8 @@ database_uploader.py
 """
 import csv
 import config
-import asyncio
 import logging
 import oracledb
-import pandas as pd
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -15,66 +13,71 @@ logger = logging.getLogger(__name__)
 
 def update_table_with_csv(config: dict, csv_file: Path):
     """
+    Update or insert records from the CSV file into the database table.
     """
     # adjust the number of rows to be inserted in each iteration
     # to meet your memory and performance requirements
     batch_size = 10000
 
-    connection = oracledb.connect(
+    sql = config.canvas_tables.get(csv_file.stem).get("db_query")
+    num_columns = len(config.canvas_tables.get(csv_file.stem).get("fields"))
+
+    with oracledb.connect(
         user=config.oracle_username,
         password=config.oracle_password,
         host=config.db_host,
         port=config.db_port,
         service_name=config.db_service
-    )
+    ) as connection:
 
-    sql = config.canvas_tables.get(csv_file.stem).get("db_query")
+        with connection.cursor() as cursor:
 
-    with connection.cursor() as cursor:
+            # Predefine the memory areas to match the table definition.
+            # This can improve performance by avoiding memory reallocations.
+            # Here, one parameter is passed for each of the columns.
+            # "None" is used for the ID column, since the size of NUMBER isn't
+            # variable.  The "25" matches the maximum expected data size for the
+            # NAME column
 
-        # Predefine the memory areas to match the table definition.
-        # This can improve performance by avoiding memory reallocations.
-        # Here, one parameter is passed for each of the columns.
-        # "None" is used for the ID column, since the size of NUMBER isn't
-        # variable.  The "25" matches the maximum expected data size for the
-        # NAME column
+            # cursor.setinputsizes(None, 25)
 
-        # cursor.setinputsizes(None, 25)
+            with open(csv_file, 'r', encoding="utf-8") as csv_stream:
+                csv_reader = csv.reader(csv_stream, delimiter=',')
 
-        with open(csv_file, 'r', encoding="utf-8") as csv_stream:
-            csv_reader = csv.reader(csv_stream, delimiter=',')
+                # skip the header row
+                next(csv_reader)
+                
+                data = []
+                parameters = []
+                records_affected = 0
+                for line in csv_reader:
+                    i = 0
+                    while i < num_columns:
+                        parameters.append(line[i])
+                        i += 1
 
-            # skip the header row
-            next(csv_reader)
-            
-            data = []
-            for line in csv_reader:
-                data.append((line[0], line[1], line[2], line[3])) # probably have to configure for number of columsn for table
-                if len(data) % batch_size == 0:
+                    data_tuple = tuple(parameters)
+                    data.append(data_tuple)
+                    parameters = []
+                    if len(data) % batch_size == 0:
+                        cursor.executemany(sql, data, batcherrors=True, arraydmlrowcounts=True)
+                        data = []
+                        records_affected += sum(cursor.getarraydmlrowcounts())
+                if data:
                     cursor.executemany(sql, data, batcherrors=True, arraydmlrowcounts=True)
-                    data = []
-            if data:
-                cursor.executemany(sql, data, batcherrors=True, arraydmlrowcounts=True)
+                    records_affected += sum(cursor.getarraydmlrowcounts())
 
-            # In a production system you might choose to fix any invalid rows,
-            # re-insert them, and then commit.  Or you could rollback everything.
-            # In this sample we simply commit and ignore the invalid rows that
-            # couldn't be inserted.
             connection.commit()
+            logger.info(f"Table [canvas_{csv_file.stem}] had [{records_affected}] rows updated or inserted.")
 
-        row_counts = sum(cursor.getarraydmlrowcounts())
-        print(f"[{row_counts}] rows inserted into table [canvas_{csv_file.stem}].")
-
-        for error in cursor.getbatcherrors():
-            print("Error", error.message, "at row offset", error.offset)
-
-        # connection.close()
+            for error in cursor.getbatcherrors():
+                logger.error("Error", error.message, "at row offset", error.offset)
 
 
 def main(config: dict) -> None:
     """
+    Main function to process CSV files and update the database.
     """
-    # update_db_tables(config)
     if not config.final_path.is_dir():
         logger.error(f"The path {config.final_path} is not a valid directory.")
         raise ValueError(f"The path {config.final_path} is not a valid directory.")
@@ -85,7 +88,7 @@ def main(config: dict) -> None:
         try:
             update_table_with_csv(config, csv_file)
         except Exception as e:
-            print(e)
+            logger.error(f"An error occurred: {e}")
 
 
 if __name__ == "__main__":
