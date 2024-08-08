@@ -20,13 +20,25 @@ canvas_tables:
   #   - value.workflow_state
   #   - value.is_public
   #   - meta.ts
-  # enrollment_terms:
-  #   query_type: snapshot
-  #   fields:
-  #     - key.id
-  #     - value.sis_source_id
-  #     - value.workflow_state
-  #     - meta.ts
+  enrollment_terms:
+    query_type: snapshot
+    db_query: >-
+      insert into canvas_enrollment_terms (
+        enrollment_terms_id,
+        enrollment_terms_sis_source_id,
+        enrollment_terms_workflow_state,
+        enrollment_terms_ts
+      ) values (
+        :1,
+        :2,
+        :3,
+        to_timestamp(:4, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"')
+      )
+    fields:
+      - key.id
+      - value.sis_source_id
+      - value.workflow_state
+      - meta.ts
   # enrollments:
   #   - key.id
   #   - value.last_activity_at
@@ -55,6 +67,18 @@ canvas_tables:
   #   - meta.ts
   users:
     query_type: snapshot
+    db_query: >-
+      insert into canvas_users (
+        users_id,
+        users_workflow_state,
+        users_name,
+        users_ts
+      ) values (
+        :1,
+        :2,
+        :3,
+        to_timestamp(:4, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"')
+      )
     fields:
       - key.id
       - value.workflow_state

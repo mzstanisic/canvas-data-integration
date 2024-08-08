@@ -36,7 +36,7 @@ def process_file(json_file: Path, dataframes: dict, columns_to_keep: list) -> No
     :param3 columns_to_keep (list): The columns to keep for each table.
     """
     try:
-        df = pd.read_json(json_file, lines=True) # Canvas outputs into JSON Lines format
+        df = pd.read_json(json_file, encoding="utf-8", lines=True) # Canvas outputs into JSON Lines format
         if not df.empty:
             stem = json_file.stem
             df = flatten_and_select_columns(df, columns_to_keep)
@@ -111,7 +111,7 @@ def export_to_final(config, dataframes):
 
     for key, df in dataframes.items():
         final_dir = config.final_path / f"{key}.csv"
-        df.to_csv(final_dir, index=False)
+        df.to_csv(final_dir, index=False, encoding="utf-8")
         logger.info(f"{final_dir} created successfully.")
 
 

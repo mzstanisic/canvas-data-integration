@@ -61,7 +61,7 @@ async def get_canvas_data(table: str,
         
         filenames = []
         for object in query_object.objects:
-            filename = await session.download_object(object, output_directory, decompress=True)
+            filename = await session.download_object(object, output_directory, decompress=True) # output in UTF-8 encoding
             filenames.append(filename)
 
         p = Path(filenames[0])
@@ -69,9 +69,9 @@ async def get_canvas_data(table: str,
 
         if len(filenames) > 1:
             # merge files if more than one
-            with open(final_file, 'wb') as wfd:
+            with open(final_file, 'wb', encoding="utf-8") as wfd:
                 for file in filenames:
-                    with open(file, 'rb') as fd:
+                    with open(file, 'rb', encoding="utf-8") as fd:
                         await asyncio.to_thread(shutil.copyfileobj, fd, wfd)
                         logger.info(f"Merged file: {final_file}") #TODO: This merges headers for CSV and TSV files, figure out how to resolve. Works fine for JSON
             
@@ -88,7 +88,7 @@ async def get_canvas_data(table: str,
             logger.info(f"Created file: {final_file}")
 
 
-async def update_all(table_id: str, work_queue: asyncio.Queue, config: dict) -> None:
+async def update_all(work_queue: asyncio.Queue, config: dict) -> None:
     """
     Processes tasks from the work queue to update data for the specified table.
 
@@ -105,9 +105,10 @@ async def update_all(table_id: str, work_queue: asyncio.Queue, config: dict) -> 
 
     while not work_queue.empty():
         table = await work_queue.get()
+        # table = await work_queue.get_nowait()
 
         try:
-            logger.info(f"Task [{table_id}] beginning Canvas data pull for table: {table}.")
+            logger.info(f"Task [{table}] beginning Canvas data pull for table: {table}.")
             await get_canvas_data(table,
                                   config.temp_path,
                                   last_seen,
@@ -115,9 +116,9 @@ async def update_all(table_id: str, work_queue: asyncio.Queue, config: dict) -> 
                                   config.canvas_mode,
                                   config.canvas_tables.get(table).get("query_type")
                                   )
-            logger.info(f"Task [{table_id}] completed Canvas data pull for table: {table}.")
+            logger.info(f"Task [{table}] completed Canvas data pull for table: {table}.")
         except Exception as e:
-            logger.error(f"Task [{table_id}] failed for table: {table}. Error: {e}")
+            logger.error(f"Task [{table}] failed for table: {table}. Error: {e}")
         finally:
             work_queue.task_done()  # mark the task as done in the queue
 
@@ -151,7 +152,8 @@ async def main(config: dict) -> None:
         await work_queue.put(table)
 
     # create and gather tasks for updating all tables
-    tasks = [asyncio.create_task(update_all(table, work_queue, config)) for table in tables]
+    # tasks = [asyncio.create_task(update_all(table, work_queue, config)) for table in tables]
+    tasks = [asyncio.create_task(update_all(work_queue, config)) for table in tables]
     
     # optionally handle exceptions for individual tasks
     results = await asyncio.gather(*tasks, return_exceptions=True)

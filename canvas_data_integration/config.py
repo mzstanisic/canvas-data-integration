@@ -243,4 +243,4 @@ def get_config() -> Config:
 
 if __name__ == "__main__":
     user_config = get_config()
-    print(user_config.__repr__)
+    print(f"\n-----config.py-----\n{user_config.__repr__}")

@@ -4,6 +4,7 @@ database_uploader.py
 """
 import csv
 import config
+import asyncio
 import logging
 import oracledb
 import pandas as pd
@@ -15,24 +16,19 @@ logger = logging.getLogger(__name__)
 def update_table_with_csv(config: dict, csv_file: Path):
     """
     """
-    # connection_string = f"{un}/{pw}@{host}:{port}/{service_name}" #'user/password@host:port/service_name'
-
-    # CSV file
-    # FILE_NAME = Path(__file__).parent / '../data/final/enrollment_terms.csv'
-
-    # Adjust the number of rows to be inserted in each iteration
+    # adjust the number of rows to be inserted in each iteration
     # to meet your memory and performance requirements
     batch_size = 10000
 
-    table_name = f"{config.oracle_username}.canvas_{csv_file.stem}"
+    connection = oracledb.connect(
+        user=config.oracle_username,
+        password=config.oracle_password,
+        host=config.db_host,
+        port=config.db_port,
+        service_name=config.db_service
+    )
 
-    connection = oracledb.connect(user=config.oracle_username,
-                                  password=config.oracle_password,
-                                  host=config.db_host,
-                                  port=config.db_port,
-                                  service_name=config.db_service
-                                  )
-    
+    sql = config.canvas_tables.get(csv_file.stem).get("db_query")
 
     with connection.cursor() as cursor:
 
@@ -45,31 +41,20 @@ def update_table_with_csv(config: dict, csv_file: Path):
 
         # cursor.setinputsizes(None, 25)
 
-        with open(csv_file, 'r') as csv_file:
-            csv_reader = csv.reader(csv_file, delimiter=',')
+        with open(csv_file, 'r', encoding="utf-8") as csv_stream:
+            csv_reader = csv.reader(csv_stream, delimiter=',')
 
-            # Skip the header row
+            # skip the header row
             next(csv_reader)
-
-            sql = f"""insert into {table_name} (
-                      enrollment_terms_id,
-                      enrollment_terms_sis_source_id,
-                      enrollment_terms_workflow_state,
-                      enrollment_terms_ts
-                      ) values (
-                      :1,
-                      :2,
-                      :3,
-                      to_timestamp(:4, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"'))"""
             
             data = []
             for line in csv_reader:
-                data.append((line[0], line[1], line[2], line[3]))
+                data.append((line[0], line[1], line[2], line[3])) # probably have to configure for number of columsn for table
                 if len(data) % batch_size == 0:
-                    cursor.executemany(sql, data)
+                    cursor.executemany(sql, data, batcherrors=True, arraydmlrowcounts=True)
                     data = []
             if data:
-                cursor.executemany(sql, data)
+                cursor.executemany(sql, data, batcherrors=True, arraydmlrowcounts=True)
 
             # In a production system you might choose to fix any invalid rows,
             # re-insert them, and then commit.  Or you could rollback everything.
@@ -77,13 +62,19 @@ def update_table_with_csv(config: dict, csv_file: Path):
             # couldn't be inserted.
             connection.commit()
 
-    # TODO: maybe return Oracle message (x records inserted, updated, etc.)
-    connection.close()
+        row_counts = sum(cursor.getarraydmlrowcounts())
+        print(f"[{row_counts}] rows inserted into table [canvas_{csv_file.stem}].")
+
+        for error in cursor.getbatcherrors():
+            print("Error", error.message, "at row offset", error.offset)
+
+        # connection.close()
 
 
-def update_db_tables(config: dict) -> None:
+def main(config: dict) -> None:
     """
     """
+    # update_db_tables(config)
     if not config.final_path.is_dir():
         logger.error(f"The path {config.final_path} is not a valid directory.")
         raise ValueError(f"The path {config.final_path} is not a valid directory.")
@@ -91,18 +82,33 @@ def update_db_tables(config: dict) -> None:
     csv_files = [file for file in config.final_path.glob("*.csv")]
 
     for csv_file in csv_files:
-        update_table_with_csv(config, csv_file)
-
-
-def main(config: dict) -> None:
-    """
-    """
-    update_db_tables(config)
+        try:
+            update_table_with_csv(config, csv_file)
+        except Exception as e:
+            print(e)
 
 
 if __name__ == "__main__":
     user_config = config.get_config()
     main(user_config)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # def insert_dataframe_to_oracle(df, table_name, connection_string):
 #     """
