@@ -17,8 +17,8 @@ def empty_temp(temp_path: Path) -> None:
     :return: None
     """
 
-    file_extensions = ['.csv', '.json', '.tsv', ".parquet"]
-    files = [p for p in temp_path.rglob('*') if p.suffix in file_extensions]
+    file_extensions = [".csv", ".json", ".tsv", ".parquet"]
+    files = [p for p in temp_path.rglob("*") if p.suffix in file_extensions]
 
     print(files)
 

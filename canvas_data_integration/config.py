@@ -23,9 +23,10 @@ logging.basicConfig(
 )
 
 class Config:
-    def __init__(self, 
+    def __init__(self,
                  final_path: Path,
                  temp_path: Path,
+                 batch_size: int,
                  str_format: str,
                  canvas_format: Format,
                  canvas_tables: dict,
@@ -42,6 +43,7 @@ class Config:
 
         :param final_path: The path where final output files are stored.
         :param temp_path: The path where temporary files are stored.
+        :param batch_size: The batch size for merging records into the database.
         :param str_format: The format for the Canvas data files (string representation).
         :param canvas_format: The format for the Canvas data files.
         :param db_host: The host address of the database.
@@ -55,6 +57,7 @@ class Config:
         """
         self.final_path = final_path
         self.temp_path = temp_path
+        self.batch_size = batch_size or 10000
         self.str_format = str_format
         self.canvas_format = canvas_format
         self.canvas_tables = canvas_tables
@@ -66,7 +69,7 @@ class Config:
         self.dap_client_secret = dap_client_secret
         self.oracle_username = oracle_username
         self.oracle_password = oracle_password
-        
+
         # canvas_extractor.py: lays out nested fixed-cardinality fields into several columns. JSON and Parquet don't accept a mode parameter
         self.canvas_mode = None if canvas_format == Format.JSONL or canvas_format == Format.Parquet else Mode.expanded
 
@@ -76,6 +79,7 @@ class Config:
         """
         return (f"Config(final_path={self.final_path}, "
                 f"temp_path={self.temp_path}, "
+                f"batch_size={self.batch_size}, "
                 f"format='{self.str_format}', "
                 f"canvas_format='{self.canvas_format}', "
                 f"canvas_mode='{self.canvas_mode}', "
@@ -131,13 +135,14 @@ def validate_config(config_path: Path) -> dict:
         #     logger.error(f"Some or all config.yml database connection fields are empty. Update {config_path} to include all database connection fields.")
         #     raise Exception(f"Some or all config.yml database connection fields are empty. Update {config_path} to include all database connection fields.")
         
-        if config.get("temp_path") == None or config.get("final_path") == None or config.get("canvas_format") == None:
-            logger.warning(f"Some or all optional configuration fields in config.yml are empty. Using defaults.")
+        if config.get("temp_path") == None or config.get("final_path") == None or config.get("canvas_format") == None or config.get("batch_size") == None:
+            logger.warning("Some or all optional configuration fields in config.yml are empty. Using defaults.")
             config["temp_path"] = "../data/temp"
             config["final_path"] = "../data/final"
             config["canvas_format"] = Format.JSONL
+            config["batch_size"] = 10000
             
-        if config.get("canvas_tables") == None:
+        if config.get("canvas_tables") == None: #TODO: redo, this doesn't work at all
             logger.warning(f"Canvas table configuration dictionary in config.yml is empty. Using defaults.")
             config["canvas_tables"] = {
                 'course_sections': ['key.id', 'value.name', 'value.course_id', 'value.workflow_state', 'meta.ts'],
@@ -225,6 +230,7 @@ def get_config() -> Config:
     config = Config(
         final_path = Path(__file__).parent / config.get('final_path'),
         temp_path = Path(__file__).parent / config.get('temp_path'),
+        batch_size = config.get('batch_size'),
         str_format = config.get('canvas_format').name,          # string representation of format
         canvas_format = config.get('canvas_format'),            # actual format
         canvas_tables = config.get("canvas_tables"),
