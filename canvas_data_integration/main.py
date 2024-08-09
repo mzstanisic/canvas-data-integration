@@ -13,7 +13,6 @@ import asyncio
 import config
 import canvas_extractor
 import data_transformer
-# import data_integrator
 import database_uploader
 
 

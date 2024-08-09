@@ -1,9 +1,8 @@
 """
-processing.py
-
 Imports the JSON Line files into pandas dataframes, flattens them,
 and extracts only the selected columns for each table for further operations.
 """
+
 import config
 import logging
 import pandas as pd
@@ -80,21 +79,21 @@ def rename_dataframe_columns(dataframes: dict) -> dict:
     dataframes_bu = dataframes.copy()  # backup original dataframes in case of failure
     try:
         for key, df in dataframes.items():
-            # Create a dictionary to map old column names to new column names
+            # create a dictionary to map old column names to new column names
             new_column_names = {}
             
             for column in df.columns:
-                # Split column name on the dot and create a new name with the DataFrame key as prefix
+                # split column name on the dot and create a new name with the DataFrame key as prefix
                 if '.' in column:
                     prefix, name = column.split('.', 1)
                     new_name = f"{key}_{name}"
                     new_column_names[column] = new_name
                 else:
-                    # Handle columns without a dot
+                    # handle columns without a dot
                     new_name = f"{key}_{column}"
                     new_column_names[column] = new_name
             
-            # Rename columns
+            # rename columns
             dataframes[key] = df.rename(columns=new_column_names)
 
         logger.info("Dataframe columns renamed successfully.")
@@ -113,7 +112,6 @@ def export_to_final(config, dataframes):
         final_dir = config.final_path / f"{key}.csv"
         df.to_csv(final_dir, index=False, encoding="utf-8")
         logger.info(f"{final_dir} created successfully.")
-
 
 
 def main(config: dict) -> dict:

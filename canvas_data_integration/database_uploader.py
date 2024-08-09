@@ -1,7 +1,8 @@
 """
-database_uploader.py
-
+Uses predefined SQL statements to merge pulled records from Canvas CSV files into
+predefined Oracle tables.
 """
+
 import csv
 import config
 import logging
@@ -11,9 +12,13 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 
-def update_table_with_csv(config: dict, csv_file: Path):
+def update_table_with_csv(config: dict, csv_file: Path) -> None:
     """
     Update or insert records from the CSV file into the database table.
+
+    :param1 config (dict): The user config.
+    :param2 csv_fiel (Path): The Path to the csv_file.
+    :return: None
     """
     # adjust the number of rows to be inserted in each iteration
     # to meet your memory and performance requirements
@@ -31,7 +36,7 @@ def update_table_with_csv(config: dict, csv_file: Path):
     ) as connection:
 
         with connection.cursor() as cursor:
-            
+
             with open(csv_file, 'r', encoding="utf-8") as csv_stream:
                 csv_reader = csv.reader(csv_stream, delimiter=',')
 
@@ -68,6 +73,9 @@ def update_table_with_csv(config: dict, csv_file: Path):
 def main(config: dict) -> None:
     """
     Main function to process CSV files and update the database.
+
+    :param1 config (dict): The user config.
+    :return: None
     """
     if not config.final_path.is_dir():
         logger.error(f"The path {config.final_path} is not a valid directory.")
