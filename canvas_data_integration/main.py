@@ -13,7 +13,7 @@ import asyncio
 import config
 import canvas_extractor
 import data_transformer
-import data_integrator
+# import data_integrator
 import database_uploader
 
 
@@ -34,19 +34,7 @@ async def run_pipeline():
     # print(final_dataframe.head()) #TODO: debugging, see a result
 
     # final dataframe is uploaded to database
-    # await database_uploader.main(final_dataframe) # accepts the final dataframe
+    database_uploader.main(user_config) # accepts the final dataframe
 
 if __name__ == "__main__":
     asyncio.run(run_pipeline())
-
-
-
-
-
-
-
-    # TODO: get config figured out
-
-    # asyncio.run(canvas.main())      # no arguments
-    # asyncio.run(processing.main())  # accepts the resulting files, or temp file path? and maybe a format
-    # asyncio.run(database.main())    # accepts the final dataframe

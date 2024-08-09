@@ -13,7 +13,7 @@ from dap.dap_types import Format, Mode, SnapshotQuery, IncrementalQuery
 
 logger = logging.getLogger(__name__)
 
-last_seen = datetime.now(timezone.utc) - timedelta(days=1) #TODO: establish in config as well?
+last_seen = datetime.now(timezone.utc) - timedelta(days=3) #TODO: establish in config as well?
 
 async def get_canvas_data(table: str,
                           output_directory: Path,
@@ -29,19 +29,6 @@ async def get_canvas_data(table: str,
     :param format: The desired format for the data files: `CSV`, `JSONL`, `TSV`, or `Parquet`
     :param query_type: The desired query type: `incremental` or `snapshot`
     """
-    # mode = Mode.expanded # lays out nested fixed-cardinality fields into several columns
-
-    # # adjust output directory and mode based on the format
-    # match format:
-    #     case Format.CSV:
-    #         output_directory = Path(output_directory) / "csv"
-    #     case Format.JSONL:
-    #         output_directory = Path(output_directory) / "json"
-    #         mode = None # JSON doesn't accept a mode parameter
-    #     case Format.TSV:
-    #         output_directory = Path(output_directory) / "tsv"
-    #     case Format.Parquet:
-    #         output_directory = Path(output_directory) / "parquet"
 
     output_directory = output_directory / format.name.lower()
 
@@ -61,7 +48,7 @@ async def get_canvas_data(table: str,
         
         filenames = []
         for object in query_object.objects:
-            filename = await session.download_object(object, output_directory, decompress=True) # output in UTF-8 encoding
+            filename = await session.download_object(object, output_directory, decompress=True) # outputs in UTF-8 encoding
             filenames.append(filename)
 
         p = Path(filenames[0])
@@ -69,9 +56,9 @@ async def get_canvas_data(table: str,
 
         if len(filenames) > 1:
             # merge files if more than one
-            with open(final_file, 'wb', encoding="utf-8") as wfd:
+            with open(final_file, 'wb') as wfd:
                 for file in filenames:
-                    with open(file, 'rb', encoding="utf-8") as fd:
+                    with open(file, 'rb') as fd:
                         await asyncio.to_thread(shutil.copyfileobj, fd, wfd)
                         logger.info(f"Merged file: {final_file}") #TODO: This merges headers for CSV and TSV files, figure out how to resolve. Works fine for JSON
             
@@ -105,7 +92,6 @@ async def update_all(work_queue: asyncio.Queue, config: dict) -> None:
 
     while not work_queue.empty():
         table = await work_queue.get()
-        # table = await work_queue.get_nowait()
 
         try:
             logger.info(f"Task [{table}] beginning Canvas data pull for table: {table}.")
@@ -152,7 +138,6 @@ async def main(config: dict) -> None:
         await work_queue.put(table)
 
     # create and gather tasks for updating all tables
-    # tasks = [asyncio.create_task(update_all(table, work_queue, config)) for table in tables]
     tasks = [asyncio.create_task(update_all(work_queue, config)) for table in tables]
     
     # optionally handle exceptions for individual tasks

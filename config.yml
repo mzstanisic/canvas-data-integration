@@ -51,7 +51,7 @@ canvas_tables:
 
 # courses table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.courses
   courses:
-    query_type: snapshot
+    query_type: incremental
     fields:
       - key.id
       - value.sis_source_id
@@ -103,7 +103,7 @@ canvas_tables:
 
 # enrollment_terms table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.enrollment_terms
   enrollment_terms:
-    query_type: snapshot
+    query_type: incremental
     fields:
       - key.id
       - value.sis_source_id
@@ -157,7 +157,7 @@ canvas_tables:
       merge into canvas_enrollments target using (
         select  
           :1 as enrollments_id,
-          :2 as enrollments_last_activity_at,
+          to_timestamp(:2, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"') as enrollments_last_activity_at,
           :3 as enrollments_total_activity_time,
           :4 as enrollments_course_section_id,
           :5 as enrollments_course_id,
@@ -212,7 +212,7 @@ canvas_tables:
 
 # pseudonyms table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.pseudonyms
   pseudonyms:
-    query_type: snapshot
+    query_type: incremental
     fields:
       - key.id
       - value.user_id
@@ -306,7 +306,7 @@ canvas_tables:
 
 # users table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.users
   users:
-    query_type: snapshot
+    query_type: incremental
     fields:
       - key.id
       - value.workflow_state

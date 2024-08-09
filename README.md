@@ -34,7 +34,7 @@ CREATE TABLE canvas_courses (
     courses_name VARCHAR2(255),
     courses_enrollment_term_id NUMBER(19) NOT NULL,
     courses_workflow_state VARCHAR2(255) NOT NULL,
-    courses_is_public VARCHAR2(5) NOT NULL,
+    courses_is_public VARCHAR2(5),
     courses_ts TIMESTAMP NOT NULL,
     CONSTRAINT pk_courses PRIMARY KEY (courses_id)
     );
@@ -63,7 +63,7 @@ CREATE TABLE canvas_enrollments (
     enrollments_course_id NUMBER(19) NOT NULL,
     enrollments_role_id NUMBER(19) NOT NULL,
     enrollments_user_id NUMBER(19) NOT NULL,
-    enrollments_sis_pseudonym_id NUMBER(19) NOT NULL,
+    enrollments_sis_pseudonym_id NUMBER(19),
     enrollments_workflow_state VARCHAR2(255) NOT NULL,
     enrollments_type VARCHAR2(255) NOT NULL,
     enrollments_ts TIMESTAMP NOT NULL,
