@@ -13,9 +13,11 @@ files for Summer 2024. Also, try left joins for canvas_full files
 Optionally, set up a virtual environment to not pollute the global one.
 --setup virtual environment
 
-python -m pip install -r requirements.txt
+`python -m pip install -r requirements.txt`
 
 Create tables in Oracle Database. Oracle scripts derived and condensed from DAP API scripts for [PostgreSQL](https://data-access-platform-api.s3.eu-central-1.amazonaws.com/sql/postgresql.sql), [MySQL](https://data-access-platform-api.s3.eu-central-1.amazonaws.com/sql/mysql.sql), [Microsoft SQL Server](https://data-access-platform-api.s3.amazonaws.com/sql/mssql.sql).
+
+Change directory in `run.ps1` to your project directory.
 
 ### canvas_course_sections
 
@@ -118,4 +120,4 @@ CREATE TABLE canvas_users (
 
 ## Resources
 
-https://community.canvaslms.com/t5/Data-and-Analytics-Group/Generating-SQL-Create-Table-Scripts-from-JSON-Schemas-for-Canvas/m-p/588305
+<https://community.canvaslms.com/t5/Data-and-Analytics-Group/Generating-SQL-Create-Table-Scripts-from-JSON-Schemas-for-Canvas/m-p/588305>

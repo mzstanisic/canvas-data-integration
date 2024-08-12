@@ -3,7 +3,7 @@ temp_path: ../data/temp
 final_path: ../data/final
 canvas_format: JSONL # CSV, JSONL, Parquet, or TSV
 batch_size: 10000
-past_days: 3
+past_days: 5
 
 # tables and columns we want to retrieve
 # https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#datasets
