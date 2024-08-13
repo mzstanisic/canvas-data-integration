@@ -3,8 +3,8 @@
 ## SETUP
 
 Optionally, set up a virtual environment to not pollute the global one.
---setup virtual environment
-
+--setup virtual environment `python -m venv .venv`
+--activate `.\.venv\Scripts\activate`
 `python -m pip install -r requirements.txt`
 
 Create tables in Oracle Database. Oracle scripts derived and condensed from DAP API scripts for [PostgreSQL](https://data-access-platform-api.s3.eu-central-1.amazonaws.com/sql/postgresql.sql), [MySQL](https://data-access-platform-api.s3.eu-central-1.amazonaws.com/sql/mysql.sql), [Microsoft SQL Server](https://data-access-platform-api.s3.amazonaws.com/sql/mssql.sql).

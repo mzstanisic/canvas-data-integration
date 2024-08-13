@@ -47,7 +47,8 @@ async def get_canvas_data(
                 format=data_format, mode=mode, since=last_seen, until=None
             )
         else:
-            raise ValueError("Invalid query_type. Must be 'incremental' or 'snapshot'.")
+            logger.error("Invalid query_type: %s. Must be 'incremental' or 'snapshot'.", query_type)
+            raise ValueError(f"Invalid query_type: {query_type}. Must be 'incremental' or 'snapshot'.")
 
         # fetch table data into web server
         query_object = await session.get_table_data("canvas", table, query)
@@ -120,6 +121,7 @@ async def update_all(work_queue: asyncio.Queue, user_config: dict) -> None:
             )
         except Exception as e:
             logger.error("Task [%s] failed for table: %s. Error: %s", table, table, e)
+            raise RuntimeError(f"Task [{table}] failed for table: {table}") from e
         finally:
             work_queue.task_done()  # mark the task as done in the queue
 
@@ -167,6 +169,7 @@ async def main(user_config: dict) -> None:
     for result in results:
         if isinstance(result, Exception):
             logger.error("An error occurred: %s", result)
+            raise result
 
 
 if __name__ == "__main__":

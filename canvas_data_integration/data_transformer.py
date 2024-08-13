@@ -49,6 +49,7 @@ def process_file(json_file: Path, dataframes: dict, columns_to_keep: list) -> No
             logger.warning("No data loaded from %s.", json_file)
     except Exception as e:
         logger.error("Failed to process file %s. Error: %s", json_file, e)
+        raise RuntimeError(f"Failed to process file {json_file}") from e
 
 
 def load_and_process_json_files(directory: Path, columns_mapping: dict) -> dict:
@@ -67,6 +68,10 @@ def load_and_process_json_files(directory: Path, columns_mapping: dict) -> dict:
         raise ValueError(f"The path {directory} is not a valid directory.")
 
     json_files = list(directory.glob("*.json"))
+
+    if not json_files:
+        logger.error("No JSON files found in directory: %s", directory)
+        raise ValueError(f"No JSON files found in directory: {directory}")
 
     dataframes = {}
 
@@ -110,22 +115,13 @@ def rename_dataframe_columns(dataframes: dict) -> dict:
             # Rename columns
             dataframes[key] = df.rename(columns=new_column_names)
 
-        except KeyError as e:
-            logger.error(
-                "KeyError while processing dataframe for key '%s'. Error: %s", key, e
-            )
-        except AttributeError as e:
-            logger.error(
-                "AttributeError while processing dataframe for key '%s'. Error: %s",
-                key,
-                e,
-            )
         except Exception as e:
             logger.error(
                 "Failed to rename columns for dataframe with key '%s'. Error: %s",
                 key,
                 e,
             )
+            raise RuntimeError(f"Failed to rename columns for dataframe with key '{key}'") from e
 
     if dataframes == dataframes_bu:
         logger.info("Dataframe columns renamed successfully.")
