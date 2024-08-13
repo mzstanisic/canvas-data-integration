@@ -10,14 +10,16 @@ from datetime import datetime, timedelta, timezone
 import yaml
 from dotenv import load_dotenv
 from dap.dap_types import Format, Mode
+import utils
 
+# setup the logger
 logger = logging.getLogger(__name__)
+log_path = Path(__file__).parent / "../logs/"
+log_path.mkdir(parents=True, exist_ok=True)
 
 # config the logger
 logging.basicConfig(
-    filename=Path(__file__).parent
-    / "../logs/"
-    / datetime.now().strftime("%Y-%m-%d.log"),
+    filename=log_path / datetime.now().strftime("%Y-%m-%d.log"),
     encoding="utf-8",
     level=logging.DEBUG,
     format="%(asctime)s :: %(levelname)-8s :: %(module)s.%(funcName)s: %(message)s",
@@ -37,6 +39,7 @@ class Config:
         temp_path: Path,
         batch_size: int,
         past_days: int,
+        log_retention_period: int,
         str_format: str,
         canvas_format: Format,
         canvas_tables: dict,
@@ -56,6 +59,7 @@ class Config:
         :param temp_path: The path where temporary files are stored.
         :param batch_size: The batch size for merging records into the database.
         :param past_days: How many days in the past to search for updated records.
+        :param log_retention_period: How many days to keeps logs for.
         :param str_format: The format for the Canvas data files (string representation).
         :param canvas_format: The format for the Canvas data files.
         :param db_host: The host address of the database.
@@ -71,6 +75,7 @@ class Config:
         self.temp_path = temp_path
         self.batch_size = batch_size or 10000
         self.past_days = past_days or 3
+        self.log_retention_period = log_retention_period or 30
         self.str_format = str_format
         self.canvas_format = canvas_format
         self.canvas_tables = canvas_tables
@@ -101,6 +106,7 @@ class Config:
             f"temp_path={self.temp_path}\n"
             f"batch_size={self.batch_size}\n"
             f"past_days={self.past_days}\n"
+            f"log_retention_period={self.log_retention_period}\n"
             f"format='{self.str_format}'\n"
             f"canvas_format='{self.canvas_format}'\n"
             f"canvas_mode='{self.canvas_mode}'\n"
@@ -175,29 +181,40 @@ def validate_config(config_path: Path) -> dict:
     if config.get("temp_path") is None:
         config["temp_path"] = "../data/temp"
         logger.warning(
-            "Configuration field 'temp_path' in config.yml is empty. Using default."
+            "Configuration field 'temp_path' in config.yml is empty. Using default: %s",
+            config["temp_path"],
         )
     if config.get("final_path") is None:
         config["final_path"] = "../data/final"
         logger.warning(
-            "Configuration field 'final_path' in config.yml is empty. Using default."
+            "Configuration field 'final_path' in config.yml is empty. Using default: %s",
+            config["final_path"],
         )
     if config.get("canvas_format") is None:
         config["canvas_format"] = Format.JSONL
         logger.warning(
-            "Configuration field 'canvas_format' in config.yml is empty. Using default."
+            "Configuration field 'canvas_format' in config.yml is empty. Using default: %s",
+            config["canvas_format"],
         )
     else:
         config["canvas_format"] = get_format(config.get("canvas_format"))
     if config.get("batch_size") is None:
         config["batch_size"] = 10000
         logger.warning(
-            "Configuration field 'batch_size' in config.yml is empty. Using default."
+            "Configuration field 'batch_size' in config.yml is empty. Using default: %s",
+            config["batch_size"],
         )
     if config.get("past_days") is None:
         config["past_days"] = 3
         logger.warning(
-            "Configuration field 'past_days' in config.yml is empty. Using default."
+            "Configuration field 'past_days' in config.yml is empty. Using default: %s",
+            config["past_days"],
+        )
+    if config.get("log_retention_period") is None:
+        config["log_retention_period"] = 30
+        logger.warning(
+            "Configuration field 'log_retention_period' in config.yml is empty. Using default: %s",
+            config["log_retention_period"],
         )
 
     if config.get("canvas_tables") is None:
@@ -334,6 +351,7 @@ def get_config() -> Config:
         temp_path=Path(__file__).parent / config.get("temp_path"),
         batch_size=config.get("batch_size"),
         past_days=config.get("past_days"),
+        log_retention_period=config.get("log_retention_period"),
         str_format=config.get("canvas_format").name,  # string representation of format
         canvas_format=config.get("canvas_format"),  # actual format
         canvas_tables=config.get("canvas_tables"),
@@ -346,6 +364,9 @@ def get_config() -> Config:
         oracle_username=env.get("oracle_username"),
         oracle_password=env.get("oracle_password"),
     )
+
+    # clean old logs
+    utils.clean_old_logs(log_path, config.log_retention_period)
 
     return config
 

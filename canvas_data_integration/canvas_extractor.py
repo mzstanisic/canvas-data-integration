@@ -97,7 +97,6 @@ async def update_all(work_queue: asyncio.Queue, user_config: dict) -> None:
 
     :param table_id: A unique identifier for the task. This is used for logging purposes.
     :param work_queue: An asyncio.Queue instance containing the list of tables to be processed.
-
     :return: None
     """
 

@@ -1,12 +1,4 @@
-# TODO
-
-- data_integrator.join_dataframes needs way more data to match. Start pulling json
-files for Summer 2024. Also, try left joins for canvas_full files
-- requirements.txt: <https://pip.pypa.io/en/stable/cli/pip_freeze/#pip-freeze>
-- rotate logs past retention period
-- check if records already exist in tables before insertion (most recent timestamp in table, don't insert anything before that)
-- redo all module and function docstrings
-- last_seen implementation in config/canvas_extractor/database_uploader
+# CANVAS-DATA-INTEGRATION
 
 ## SETUP
 

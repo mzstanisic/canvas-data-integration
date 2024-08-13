@@ -1,9 +1,10 @@
 # optional
-temp_path: ../data/temp
-final_path: ../data/final
-canvas_format: JSONL # CSV, JSONL, Parquet, or TSV
-batch_size: 10000
-past_days: 5
+temp_path: ../data/temp     # directory for the temp data files pulled from Canvas, default: '../data/temp'
+final_path: ../data/final   # directory for the final data prepped for insertion into Oracle, default: '../data/final'
+canvas_format: JSONL        # file format for data pulled from Canvas. Only JSONL supported currently (CSV, JSONL, Parquet, or TSV), default: 'JSONL'
+batch_size: 10000           # batch size for the number of queries executed at once for Oracle, default: 10000
+past_days: 10               # how many days to go back to retrieve data when querying Canvas tables with the 'incremental' query type, default 3
+log_retention_period: 30    # how many days to retain logs for, default: 30
 
 # tables and columns we want to retrieve
 # https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#datasets
