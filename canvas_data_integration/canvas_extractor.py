@@ -168,8 +168,8 @@ async def main(user_config: dict) -> None:
     # handle exceptions if needed
     for result in results:
         if isinstance(result, Exception):
-            logger.error("An error occurred: %s", result)
-            raise result
+            logger.error("A threaded exception occurred: %s", result)
+            raise result from result
 
 
 if __name__ == "__main__":
