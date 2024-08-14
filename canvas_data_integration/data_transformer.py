@@ -71,7 +71,7 @@ def load_and_process_json_files(directory: Path, columns_mapping: dict) -> dict:
 
     if not json_files:
         logger.error("No JSON files found in directory: %s", directory)
-        raise ValueError(f"No JSON files found in directory: {directory}")
+        raise FileNotFoundError(f"No JSON files found in directory: {directory}")
 
     dataframes = {}
 
