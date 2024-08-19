@@ -343,7 +343,7 @@ def get_config() -> Config:
     config = validate_config(config_path)
 
     # Development only. In production, use system environment variables
-    env_path = Path(__file__).parent / "../resources/.env"
+    env_path = Path(__file__).parent / "../.env"
     env = validate_env(env_path)
 
     config = Config(

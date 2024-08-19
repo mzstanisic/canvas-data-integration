@@ -26,7 +26,7 @@ canvas_tables:
           :2 as course_sections_name,
           :3 as course_sections_course_id,
           :4 as course_sections_workflow_state,
-          to_timestamp(:5, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"') as course_sections_ts 
+          from_tz(to_timestamp(:5, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"'), 'UTC') AT TIME ZONE 'America/New_York' as course_sections_ts 
         from dual
         ) source
       on (target.course_sections_id = source.course_sections_id)
@@ -52,7 +52,7 @@ canvas_tables:
         source.course_sections_ts
         )
 
-# courses table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.courses
+# # courses table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.courses
   courses:
     query_type: incremental
     fields:
@@ -72,7 +72,7 @@ canvas_tables:
           :4 as courses_enrollment_term_id,
           :5 as courses_workflow_state,
           :6 as courses_is_public,
-          to_timestamp(:7, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"') as courses_ts 
+          from_tz(to_timestamp(:7, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"'), 'UTC') AT TIME ZONE 'America/New_York' as courses_ts
         from dual
         ) source
       on (target.courses_id = source.courses_id)
@@ -104,7 +104,7 @@ canvas_tables:
         source.courses_ts
         )
 
-# enrollment_terms table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.enrollment_terms
+# # enrollment_terms table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.enrollment_terms
   enrollment_terms:
     query_type: incremental
     fields:
@@ -118,7 +118,7 @@ canvas_tables:
           :1 as enrollment_terms_id, 
           :2 as enrollment_terms_sis_source_id, 
           :3 as enrollment_terms_workflow_state, 
-          to_timestamp(:4, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"') as enrollment_terms_ts 
+          from_tz(to_timestamp(:4, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"'), 'UTC') AT TIME ZONE 'America/New_York' as enrollment_terms_ts 
         from dual
         ) source
       on (target.enrollment_terms_id = source.enrollment_terms_id)
@@ -141,7 +141,7 @@ canvas_tables:
         source.enrollment_terms_ts
         )
 
-# enrollments table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.enrollments
+# # enrollments table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.enrollments
   enrollments:
     query_type: incremental
     fields:
@@ -160,7 +160,7 @@ canvas_tables:
       merge into canvas_enrollments target using (
         select  
           :1 as enrollments_id,
-          to_timestamp(:2, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"') as enrollments_last_activity_at,
+          from_tz(to_timestamp(:2, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"'), 'UTC') AT TIME ZONE 'America/New_York' as enrollments_last_activity_at,
           :3 as enrollments_total_activity_time,
           :4 as enrollments_course_section_id,
           :5 as enrollments_course_id,
@@ -169,7 +169,7 @@ canvas_tables:
           :8 as enrollments_sis_pseudonym_id,
           :9 as enrollments_workflow_state,
           :10 as enrollments_type,
-          to_timestamp(:11, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"') as enrollments_ts 
+          from_tz(to_timestamp(:11, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"'), 'UTC') AT TIME ZONE 'America/New_York' as enrollments_ts
         from dual
         ) source
       on (target.enrollments_id = source.enrollments_id)
@@ -213,7 +213,7 @@ canvas_tables:
         source.enrollments_ts
         )
 
-# pseudonyms table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.pseudonyms
+# # pseudonyms table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.pseudonyms
   pseudonyms:
     query_type: incremental
     fields:
@@ -231,7 +231,7 @@ canvas_tables:
           :3 as pseudonyms_workflow_state,
           :4 as pseudonyms_unique_id,
           :5 as pseudonyms_sis_user_id,
-          to_timestamp(:6, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"') as pseudonyms_ts 
+          from_tz(to_timestamp(:6, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"'), 'UTC') AT TIME ZONE 'America/New_York' as pseudonyms_ts
         from dual
         ) source
       on (target.pseudonyms_id = source.pseudonyms_id)
@@ -260,7 +260,7 @@ canvas_tables:
         source.pseudonyms_ts
         )
 
-# scores table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.scores
+# # scores table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.scores
   scores:
     query_type: incremental
     fields:
@@ -278,7 +278,7 @@ canvas_tables:
           :3 as scores_enrollment_id,
           :4 as scores_workflow_state,
           :5 as scores_course_score,
-          to_timestamp(:6, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"') as scores_ts 
+          from_tz(to_timestamp(:6, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"'), 'UTC') AT TIME ZONE 'America/New_York' as scores_ts
         from dual
         ) source
       on (target.scores_id = source.scores_id)
@@ -307,7 +307,7 @@ canvas_tables:
         source.scores_ts
         )
 
-# users table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.users
+# # users table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.users
   users:
     query_type: incremental
     fields:
@@ -321,7 +321,7 @@ canvas_tables:
           :1 as users_id, 
           :2 as users_workflow_state, 
           :3 as users_name, 
-          to_timestamp(:4, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"') as users_ts 
+          from_tz(to_timestamp(:4, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"'), 'UTC') AT TIME ZONE 'America/New_York' as users_ts
         from dual
         ) source
       on (target.users_id = source.users_id)
