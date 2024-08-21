@@ -90,7 +90,6 @@ def rename_dataframe_columns(dataframes: dict) -> dict:
     :param dataframes (dict): Dictionary of dataframes to have their columns renamed.
     :return: Dictionary of dataframes with renamed columns.
     """
-    dataframes_bu = dataframes.copy()  # Backup original dataframes in case of failure
 
     for key, df in dataframes.items():
         if not isinstance(df, pd.DataFrame):
@@ -122,11 +121,6 @@ def rename_dataframe_columns(dataframes: dict) -> dict:
                 e,
             )
             raise RuntimeError(f"Failed to rename columns for dataframe with key '{key}'") from e
-
-    if dataframes == dataframes_bu:
-        logger.info("Dataframe columns renamed successfully.")
-    else:
-        logger.warning("One or more dataframes could not be processed successfully.")
 
     return dataframes
 

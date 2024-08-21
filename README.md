@@ -8,7 +8,7 @@ The application runs in three distinct steps:
 2. Cleanup data from JSONL data files using pandas and export to final CSV files
 3. Insert data from final CSV data files into Oracle tables
 
- For our example setup below, we are looking to implement an early-alert system for students struggling in Canvas courses, so that we can forward them to Advising or other resources for assistance. We have retreived data from Canvas that is used to create tables and a view that we can use to gauge student's performance in their current Canvas course enrollments through their overall course score. Supporting information like their total time spent in the enrollment and their last activity date in the enrollment can help identify struggling students that may require assistance from Advising, etc.
+For our example setup below, we are looking to implement an early-alert system for students struggling in Canvas courses, so that we can forward them to Advising or other resources for assistance. We have retreived data from Canvas that is used to create tables and a view that we can use to gauge student's performance in their current Canvas course enrollments through their overall course score. Supporting information like their total time spent in the enrollment and their last activity date in the enrollment can help identify struggling students that may require assistance from Advising, etc.
 
 ## Requirements
 
@@ -42,7 +42,7 @@ To begin, clone or download the canvas-data-integration application. For the app
     ORACLE_PASSWORD=my-oracle-password
     ```
 
-    Replace the values with your own connection and authentiation information for DAP and Oracle.
+    Replace the values with your own connection and authentiation information for DAP and Oracle. DAP API tokens can be obtained at [identity.instructure.com](https://identity.instructure.com/login), but are temporary and will need to be refreshed occasionally.
 4. Change the directory in `run.ps1` to your project directory
 
 ---
@@ -211,39 +211,23 @@ It is assumed that you are already aware of the Canvas data structure you are lo
     - The `query_type` field ('incremental' or 'snapshot') defines which time-period DAP should retreive data for, for the specified Canvas table, as defined [here](https://data-access-platform-api.s3.amazonaws.com/client/README.html#getting-latest-changes-with-an-incremental-query). When intializing your Oracle database tables, it is recommended to first run each table in 'snapshot' mode to get the totality of records from the Canvas table from DAP. ***Warning**: Certain Canvas tables can return large numbers of records when using 'snapshot' mode. You can test with 'incremental' mode first to see how many records are returned for a more specific period of time.*
         - Afterwards, you can retreive the records changed in the past X days with the 'incremental' mode in combination with the `past_days` configuration entry.
 
+4. (Optional) Timestamps retrieved from Canvas are formatted according to [ISO-8601 standards and are in UTC time zone](https://data-access-platform-api.s3.amazonaws.com/index.html#section/Data-representation/Metadata). These timestamps are used solely for comparison purposes in Oracle `MERGE` queries that insert or update data in our Oracle tables. Therefore, you can safely insert them directly into the corresponding `TIMESTAMP` fields in the tables. For our purposes, we have decided to convert to our local time zone for further operations, as can be seen in our timestamp fields in the `create table` statements above, as well as the merge queries we have defined in `config.yml`. Should you wish to keep these timestamps in UTC format, you can adjust the setup as follows:
+    1. Modify each table's timestamp field to use just the `TIMESTAMP` data type instead of the `TIMESTAMP WITH TIME ZONE` type.
+    2. Adjust your `MERGE` queries to just use the `TO_TIMESTAMP` function. For example:
 
+        ```sql
+        FROM_TZ(TO_TIMESTAMP(:4, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"'),'UTC') AT TIME ZONE 'America/New_York'
 
+        to
 
-
-
-
-
-
-
-
-
-
-### Timestamp Handling in Canvas Integration
-
-**Note:** Timestamps retrieved from Canvas are formatted according to [ISO-8601 standards and are in UTC time zone](https://data-access-platform-api.s3.amazonaws.com/index.html#section/Data-representation/Metadata). These timestamps are used solely for comparison purposes in Oracle `MERGE` queries that insert or update data in our Oracle tables. Therefore, you can safely insert them directly into the corresponding `TIMESTAMP` fields in the tables.
-
-If you need to convert these timestamps to a local time zone for other operations, you can adjust the setup as follows:
-
-1. **Change Table Schema:** Modify each table's timestamp field to use the `TIMESTAMP WITH LOCAL TIME ZONE NOT NULL` data type.
-
-2. **Update `MERGE` Queries:** Adjust your `MERGE` queries to handle the local time zone conversion. For example:
-
-    ```sql
-    FROM_TZ(
-        TO_TIMESTAMP(:4, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"'),
-        'UTC'
-    ) AT TIME ZONE 'America/New_York'
-    ```
-
-   Replace `'America/New_York'` with the appropriate local time zone as needed.
-
-
+        TO_TIMESTAMP(:4, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"')
+        ```
 
 ## Resources
 
-[Generating SQL Create Table Scripts from JSON Schemas for Canvas Data 2](https://community.canvaslms.com/t5/Data-and-Analytics-GroupGenerating-SQL-Create-Table-Scripts-from-JSON-Schemas-for-Canvas/m-p/588305)
+- [Instructure API Gateway (0.7.3) - Docs](https://api-gateway.instructure.com/doc/)
+- [Instructure Identity Services - Get DAP API tokens](https://identity.instructure.com/login)
+- [Data Access Platform Query API (1.0.0)](https://data-access-platform-api.s3.amazonaws.com/index.html)
+- [Data Access Platform Client Library](https://data-access-platform-api.s3.amazonaws.com/client/index.html)
+- [Canvas LMS Community - Generating SQL Create Table Scripts from JSON Schemas for Canvas Data 2](https://community.canvaslms.com/t5/Data-and-Analytics-GroupGenerating-SQL-Create-Table-Scripts-from-JSON-Schemas-for-Canvas/m-p/588305)
+- [Canvas LMS Community - DAP API and API key vs. client ID + secret](https://community.canvaslms.com/t5/Data-and-Analytics-Group/DAP-API-and-API-key-vs-client-ID-secret-please-clarify-if-any/m-p/568180)

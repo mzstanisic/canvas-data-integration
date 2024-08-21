@@ -3,7 +3,7 @@ temp_path: ../data/temp     # directory for the temp data files pulled from Canv
 final_path: ../data/final   # directory for the final data prepped for insertion into Oracle, default: '../data/final'
 canvas_format: JSONL        # file format for data pulled from Canvas. Only JSONL supported currently (CSV, JSONL, Parquet, or TSV), default: 'JSONL'
 batch_size: 10000           # batch size for the number of queries executed at once for Oracle, default: 10000
-past_days: 10               # how many days to go back to retrieve data when querying Canvas tables with the 'incremental' query type, default 3
+past_days: 3                # how many days to go back to retrieve data when querying Canvas tables with the 'incremental' query type, default 3
 log_retention_period: 30    # how many days to retain logs for, default: 30
 
 # tables and columns we want to retrieve
@@ -52,7 +52,7 @@ canvas_tables:
         source.course_sections_ts
         )
 
-# # courses table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.courses
+# courses table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.courses
   courses:
     query_type: incremental
     fields:
@@ -104,7 +104,7 @@ canvas_tables:
         source.courses_ts
         )
 
-# # enrollment_terms table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.enrollment_terms
+# enrollment_terms table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.enrollment_terms
   enrollment_terms:
     query_type: incremental
     fields:
@@ -141,7 +141,7 @@ canvas_tables:
         source.enrollment_terms_ts
         )
 
-# # enrollments table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.enrollments
+# enrollments table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.enrollments
   enrollments:
     query_type: incremental
     fields:
@@ -213,7 +213,7 @@ canvas_tables:
         source.enrollments_ts
         )
 
-# # pseudonyms table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.pseudonyms
+# pseudonyms table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.pseudonyms
   pseudonyms:
     query_type: incremental
     fields:
@@ -260,7 +260,7 @@ canvas_tables:
         source.pseudonyms_ts
         )
 
-# # scores table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.scores
+# scores table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.scores
   scores:
     query_type: incremental
     fields:
@@ -307,7 +307,7 @@ canvas_tables:
         source.scores_ts
         )
 
-# # users table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.users
+# users table: https://data-access-platform-api.s3.amazonaws.com/tables/catalog.html#schemas.canvas.users
   users:
     query_type: incremental
     fields:
