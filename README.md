@@ -38,8 +38,8 @@ To begin, clone or download the canvas-data-integration application. For the app
     DB_HOST=my-host
     DB_PORT=my-port-number
     DB_SERVICE=my-service-name
-    ORACLE_USERNAME=my-oracle-username
-    ORACLE_PASSWORD=my-oracle-password
+    DB_USERNAME=my-oracle-username
+    DB_PASSWORD=my-oracle-password
     ```
 
     Replace the values with your own connection and authentiation information for DAP and Oracle. DAP API tokens can be obtained at [identity.instructure.com](https://identity.instructure.com/login), but are temporary and will need to be refreshed occasionally.
