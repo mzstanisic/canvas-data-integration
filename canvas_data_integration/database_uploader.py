@@ -25,8 +25,8 @@ def update_table_with_csv(user_config: dict, csv_file: Path) -> None:
     num_columns = len(user_config.canvas_tables.get(csv_file.stem).get("fields"))
 
     with oracledb.connect(
-        user=user_config.oracle_username,
-        password=user_config.oracle_password,
+        user=user_config.db_username,
+        password=user_config.db_password,
         host=user_config.db_host,
         port=user_config.db_port,
         service_name=user_config.db_service,

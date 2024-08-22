@@ -49,8 +49,8 @@ class Config:
         dap_api_url: str,
         dap_client_id: str,
         dap_client_secret: str,
-        oracle_username: str,
-        oracle_password: str,
+        db_username: str,
+        db_password: str,
     ):
         """
         Initializes the Config object with the given properties.
@@ -68,8 +68,8 @@ class Config:
         :param dap_api_url: The API URL for DAP.
         :param dap_client_id: The client ID for DAP.
         :param dap_client_secret: The client secret for DAP.
-        :param oracle_username: The username for Oracle database.
-        :param oracle_password: The password for Oracle database.
+        :param db_username: The username for Oracle database.
+        :param db_password: The password for Oracle database.
         """
         self.final_path = final_path
         self.temp_path = temp_path
@@ -85,8 +85,8 @@ class Config:
         self.dap_api_url = dap_api_url
         self.dap_client_id = dap_client_id
         self.dap_client_secret = dap_client_secret
-        self.oracle_username = oracle_username
-        self.oracle_password = oracle_password
+        self.db_username = db_username
+        self.db_password = db_password
 
         # canvas_extractor.py: lays out nested fixed-cardinality fields into several columns
         # JSON and Parquet don't accept a mode parameter
@@ -119,7 +119,7 @@ class Config:
             f"dap_client_secret='{self.dap_client_secret}'\n"
             f"canvas_mode={self.canvas_mode}\n"
             f"last_seen={self.last_seen}\n"
-            f"oracle_username='{self.oracle_username}')"
+            f"db_username='{self.db_username}')"
         )
 
 
@@ -278,8 +278,8 @@ def validate_env(env_path: Path) -> dict:
         "db_host": None,
         "db_port": None,
         "db_service": None,
-        "oracle_username": None,
-        "oracle_password": None,
+        "db_username": None,
+        "db_password": None,
     }
 
     env["dap_api_url"] = os.environ.get("DAP_API_URL")
@@ -288,8 +288,8 @@ def validate_env(env_path: Path) -> dict:
     env["db_host"] = os.environ.get("DB_HOST")
     env["db_port"] = os.environ.get("DB_PORT")
     env["db_service"] = os.environ.get("DB_SERVICE")
-    env["oracle_username"] = os.environ.get("ORACLE_USERNAME")
-    env["oracle_password"] = os.environ.get("ORACLE_PASSWORD")
+    env["db_username"] = os.environ.get("DB_USERNAME")
+    env["db_password"] = os.environ.get("DB_PASSWORD")
 
     # if no system environment variables, check file
     if None in env.values():
@@ -313,8 +313,8 @@ def validate_env(env_path: Path) -> dict:
             env["db_host"] = os.environ.get("DB_HOST")
             env["db_port"] = os.environ.get("DB_PORT")
             env["db_service"] = os.environ.get("DB_SERVICE")
-            env["oracle_username"] = os.environ.get("ORACLE_USERNAME")
-            env["oracle_password"] = os.environ.get("ORACLE_PASSWORD")
+            env["db_username"] = os.environ.get("DB_USERNAME")
+            env["db_password"] = os.environ.get("DB_PASSWORD")
 
             if None in env.values():
                 logger.error(
@@ -361,8 +361,8 @@ def get_config() -> Config:
         dap_api_url=env.get("dap_api_url"),
         dap_client_id=env.get("dap_client_id"),
         dap_client_secret=env.get("dap_client_secret"),
-        oracle_username=env.get("oracle_username"),
-        oracle_password=env.get("oracle_password"),
+        db_username=env.get("db_username"),
+        db_password=env.get("db_password"),
     )
 
     # clean old logs

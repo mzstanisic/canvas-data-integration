@@ -61,7 +61,7 @@ It is assumed that you are already aware of the Canvas data structure you are lo
         course_sections_name VARCHAR2(255) NOT NULL,
         course_sections_course_id NUMBER(19) NOT NULL,
         course_sections_workflow_state VARCHAR2(255) NOT NULL,
-        course_sections_ts TIMESTAMP WITH LOCAL TIME ZONE NOT NULL,
+        course_sections_ts TIMESTAMP ZONE NOT NULL,
         CONSTRAINT pk_course_sections PRIMARY KEY (course_sections_id)
         );
     ```
@@ -76,7 +76,7 @@ It is assumed that you are already aware of the Canvas data structure you are lo
         courses_enrollment_term_id NUMBER(19) NOT NULL,
         courses_workflow_state VARCHAR2(255) NOT NULL,
         courses_is_public VARCHAR2(5),
-        courses_ts TIMESTAMP WITH LOCAL TIME ZONE NOT NULL,
+        courses_ts TIMESTAMP NOT NULL,
         CONSTRAINT pk_courses PRIMARY KEY (courses_id)
         );
     ```
@@ -88,7 +88,7 @@ It is assumed that you are already aware of the Canvas data structure you are lo
         enrollment_terms_id NUMBER(19) NOT NULL,
         enrollment_terms_sis_source_id VARCHAR2(255),
         enrollment_terms_workflow_state VARCHAR2(255) NOT NULL,
-        enrollment_terms_ts TIMESTAMP WITH LOCAL TIME ZONE NOT NULL,
+        enrollment_terms_ts TIMESTAMP NOT NULL,
         CONSTRAINT pk_enrollment_terms PRIMARY KEY (enrollment_terms_id)
         );
     ```  
@@ -98,7 +98,7 @@ It is assumed that you are already aware of the Canvas data structure you are lo
     ```sql
     CREATE TABLE canvas_enrollments (
         enrollments_id NUMBER(19) NOT NULL,
-        enrollments_last_activity_at TIMESTAMP WITH LOCAL TIME ZONE,
+        enrollments_last_activity_at TIMESTAMP,
         enrollments_total_activity_time NUMBER(10),
         enrollments_course_section_id NUMBER(19) NOT NULL,
         enrollments_course_id NUMBER(19) NOT NULL,
@@ -107,7 +107,7 @@ It is assumed that you are already aware of the Canvas data structure you are lo
         enrollments_sis_pseudonym_id NUMBER(19),
         enrollments_workflow_state VARCHAR2(255) NOT NULL,
         enrollments_type VARCHAR2(255) NOT NULL,
-        enrollments_ts TIMESTAMP WITH LOCAL TIME ZONE NOT NULL,
+        enrollments_ts TIMESTAMP NOT NULL,
         CONSTRAINT pk_enrollments PRIMARY KEY (enrollments_id)
         );
     ```
@@ -121,7 +121,7 @@ It is assumed that you are already aware of the Canvas data structure you are lo
         pseudonyms_workflow_state VARCHAR2(255) NOT NULL,
         pseudonyms_unique_id VARCHAR2(255) NOT NULL,
         pseudonyms_sis_user_id VARCHAR2(255),
-        pseudonyms_ts TIMESTAMP WITH LOCAL TIME ZONE NOT NULL,
+        pseudonyms_ts TIMESTAMP NOT NULL,
         CONSTRAINT pk_pseudonyms PRIMARY KEY (pseudonyms_id)
         );
     ```
@@ -135,7 +135,7 @@ It is assumed that you are already aware of the Canvas data structure you are lo
         scores_enrollment_id NUMBER(19) NOT NULL,
         scores_workflow_state VARCHAR2(255) NOT NULL,
         scores_course_score VARCHAR2(5) NOT NULL,
-        scores_ts TIMESTAMP WITH LOCAL TIME ZONE NOT NULL,
+        scores_ts TIMESTAMP NOT NULL,
         CONSTRAINT pk_scores PRIMARY KEY (scores_id)
         );
     ```
@@ -147,7 +147,7 @@ It is assumed that you are already aware of the Canvas data structure you are lo
         users_id NUMBER(19) NOT NULL,
         users_workflow_state VARCHAR2(255) NOT NULL,
         users_name VARCHAR2(255),
-        users_ts TIMESTAMP WITH LOCAL TIME ZONE NOT NULL,
+        users_ts TIMESTAMP NOT NULL,
         CONSTRAINT pk_users PRIMARY KEY (users_id)
         );
     ```
@@ -211,16 +211,16 @@ It is assumed that you are already aware of the Canvas data structure you are lo
     - The `query_type` field ('incremental' or 'snapshot') defines which time-period DAP should retreive data for, for the specified Canvas table, as defined [here](https://data-access-platform-api.s3.amazonaws.com/client/README.html#getting-latest-changes-with-an-incremental-query). When intializing your Oracle database tables, it is recommended to first run each table in 'snapshot' mode to get the totality of records from the Canvas table from DAP. ***Warning**: Certain Canvas tables can return large numbers of records when using 'snapshot' mode. You can test with 'incremental' mode first to see how many records are returned for a more specific period of time.*
         - Afterwards, you can retreive the records changed in the past X days with the 'incremental' mode in combination with the `past_days` configuration entry.
 
-4. (Optional) Timestamps retrieved from Canvas are formatted according to [ISO-8601 standards and are in UTC time zone](https://data-access-platform-api.s3.amazonaws.com/index.html#section/Data-representation/Metadata). These timestamps are used solely for comparison purposes in Oracle `MERGE` queries that insert or update data in our Oracle tables. Therefore, you can safely insert them directly into the corresponding `TIMESTAMP` fields in the tables. For our purposes, we have decided to convert to our local time zone for further operations, as can be seen in our timestamp fields in the `create table` statements above, as well as the merge queries we have defined in `config.yml`. Should you wish to keep these timestamps in UTC format, you can adjust the setup as follows:
-    1. Modify each table's timestamp field to use just the `TIMESTAMP` data type instead of the `TIMESTAMP WITH TIME ZONE` type.
-    2. Adjust your `MERGE` queries to just use the `TO_TIMESTAMP` function. For example:
+4. (Optional) Timestamps retrieved from Canvas are formatted according to [ISO-8601 standards and are in UTC time zone](https://data-access-platform-api.s3.amazonaws.com/index.html#section/Data-representation/Metadata). These timestamps are used solely for comparison purposes in Oracle `MERGE` queries that insert or update data in our Oracle tables. Therefore, you can safely insert them directly into the corresponding `TIMESTAMP` fields in the tables. Should you wish to convert to your local time zone for further operations,  you can adjust the setup as follows:
+    1. Modify each table's timestamp field to use the `TIMESTAMP WITH TIME ZONE` data type instead of the `TIMESTAMP` data type.
+    2. Adjust your `MERGE` queries to convert your timestamp fields to a different time zone. For example:
 
         ```sql
-        FROM_TZ(TO_TIMESTAMP(:4, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"'),'UTC') AT TIME ZONE 'America/New_York'
-
+        TO_TIMESTAMP(:4, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"')
+        
         to
 
-        TO_TIMESTAMP(:4, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"')
+        FROM_TZ(TO_TIMESTAMP(:4, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"'),'UTC') AT TIME ZONE 'America/New_York'
         ```
 
 ## Resources
