@@ -1,4 +1,4 @@
-# CANVAS DATA INTEGRATION
+# Canvas Data Integration
 
 This application uses Instructure's [Data Access Platform (DAP)](https://data-access-platform-api.s3.amazonaws.com/index.html) to pull Canvas table data into data files that we can then insert into our database to perform operations and reporting on. Since DAP does not yet natively support Oracle for [replicating](https://data-access-platform-api.s3.amazonaws.com/client/README.html#replicating-data-to-a-database) and [synchronizing](https://data-access-platform-api.s3.amazonaws.com/client/README.html#synchronizing-data-with-a-database) data to a database (the preferred solution), we developed this application to support data replication to Oracle with a desired subset of data for further operations and reporting. The end result is a setup of Oracle tables and views that provide data to stakeholders in further derived reports.
 
