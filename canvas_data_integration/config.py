@@ -293,7 +293,7 @@ def validate_env(env_path: Path) -> dict:
 
     # if no system environment variables, check file
     if None in env.values():
-        logger.warning("No system environment variables found. Trying .env file...")
+        logger.info("No system environment variables found. Trying .env file...")
 
         if not env_path.is_file():
             logger.error(
