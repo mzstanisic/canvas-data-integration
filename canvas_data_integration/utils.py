@@ -1,5 +1,5 @@
 """
-Provides utility functions to the rest of the modules in the the canvas_data_integration package.
+Provides utility functions to the rest of the modules in the canvas_data_integration package.
 """
 
 import logging
