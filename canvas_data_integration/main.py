@@ -1,6 +1,4 @@
 """
-main.py
-
 The running script.
     * First, retrieves the data from Canvas
     * Second, imports the data from the generated data files into dataframes, flattens,
